@@ -71,7 +71,7 @@ fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::Pa
 }
 
 fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
-    if (args.count("parse") || args.count("lex") || args.count("lex"))
+    if (args.count("parse") || args.count("lex") || args.count("codegen"))
         return fs::path();
 
     std::string dest_path = std::format("{}.s", output_path.string());
