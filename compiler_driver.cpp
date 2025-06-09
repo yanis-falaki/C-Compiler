@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include "compiler.h"
+#include "utils.h"
 
 namespace fs = std::filesystem;
 
@@ -55,6 +57,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
+
 fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
     std::string dest_path = std::format("{}.i", output_path.string());
 
@@ -70,15 +73,21 @@ fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::Pa
     return fs::path(dest_path);
 }
 
+
 fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
     if (args.count("parse") || args.count("lex") || args.count("codegen"))
         return fs::path();
+
+    std::string sourceString = Utils::readFile(source_path);
+
+    auto lexList = Compiler::lexer(sourceString);
 
     std::string dest_path = std::format("{}.s", output_path.string());
     std::string command = std::format("gcc -S {} -o {}", source_path.string(), dest_path);
     system(command.c_str());
     return fs::path(dest_path);
 }
+
 
 void assemble(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
     std::string command = std::format("gcc {} -o {}", source_path.string(), output_path.string());
