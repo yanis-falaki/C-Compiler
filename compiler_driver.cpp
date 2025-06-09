@@ -9,9 +9,9 @@
 
 namespace fs = std::filesystem;
 
-fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::ParseResult args);
-fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResult args);
-void assemble(fs::path source_path, fs::path output_path, cxxopts::ParseResult args);
+fs::path preprocess_file(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args);
+fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args);
+void assemble(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args);
 
 int main(int argc, char* argv[]) {
     cxxopts::Options options("Compiler Driver", "Driver for my C Compiler");
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 }
 
 
-fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
+fs::path preprocess_file(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args) {
     std::string dest_path = std::format("{}.i", output_path.string());
 
     std::string command;
@@ -99,8 +99,8 @@ fs::path preprocess_file(fs::path source_path, fs::path output_path, cxxopts::Pa
 }
 
 
-fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
-    if (args.count("parse") || args.count("codegen"))
+fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args) {
+    if (args.count("codegen"))
         return fs::path();
 
     std::string sourceString = Utils::readFile(source_path);
@@ -108,6 +108,12 @@ fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResul
     
     auto lexList = Compiler::lexer(sourceString);
     if (args.count("lex")) return fs::path();
+
+    auto programPtr = Compiler::parseProgram(lexList);
+    if (args.count("parse")) {
+        programPtr->print();
+        return fs::path();
+    }
 
     std::string dest_path = std::format("{}.s", output_path.string());
     std::string command = std::format("gcc -S {} -o {}", source_path.string(), dest_path);
@@ -118,7 +124,7 @@ fs::path compile(fs::path source_path, fs::path output_path, cxxopts::ParseResul
 }
 
 
-void assemble(fs::path source_path, fs::path output_path, cxxopts::ParseResult args) {
+void assemble(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args) {
     std::string command = std::format("gcc {} -o {}", source_path.string(), output_path.string());
     if(system(command.c_str())) {
         throw std::runtime_error("Sys command error");
