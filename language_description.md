@@ -28,3 +28,14 @@ exp = Constant(int)
 
 <constant> ::= ? A constant token ?
 ```
+
+# Assembly AST ASDL:
+```
+program = Program(function_definition)
+
+function_definition = Function(identifier name, instruction* instructions)
+
+instruction = Mov(operand src, operand dst) | Ret
+
+operand = Imm(int) | Register
+```
