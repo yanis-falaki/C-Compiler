@@ -4,8 +4,10 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
-#include "compiler.h"
 #include "utils.h"
+#include "lexer.hpp"
+#include "c_ast.hpp"
+#include "parser.hpp"
 
 namespace fs = std::filesystem;
 
@@ -106,10 +108,10 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     std::string sourceString = Utils::readFile(source_path);
 
     
-    auto lexList = Compiler::lexer(sourceString);
+    auto lexList = compiler::lexer::lexer(sourceString);
     if (args.count("lex")) return fs::path();
 
-    auto programPtr = Compiler::parseProgram(lexList);
+    auto programPtr = compiler::parser::parseProgram(lexList);
     if (args.count("parse")) {
         programPtr->print();
         return fs::path();
