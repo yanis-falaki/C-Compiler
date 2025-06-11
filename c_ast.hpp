@@ -21,7 +21,7 @@ struct Constant : Expression {
     Constant(int constant) : mValue(constant) {}
     int evaluate() const override { return mValue; }
 
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override {
         auto indent = std::string(depth*2, ' ');
         std::cout << indent << "Constant: " << mValue << std::endl;
     }
@@ -38,7 +38,7 @@ struct Return : Statement {
     std::unique_ptr<Expression> mExpr;
     Return(std::unique_ptr<Expression> expr) : mExpr(std::move(expr)) {}
 
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override {
         std::string indent = std::string(depth*2, ' ');
         std::cout << indent << "Return:" << std::endl;
         mExpr->print(depth + 1);
@@ -57,7 +57,7 @@ struct If : Statement {
           mThen(std::move(thenBranch)),
           mElse(std::move(elseBranch)) {}
 
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override {
         std::string indent = std::string(depth*2, ' ');
         std::cout << indent << "If:" << std::endl;
         mCondition->print(depth+1);

@@ -18,7 +18,7 @@ struct Operand {
 struct Imm : Operand {
     uint32_t mValue;
     Imm(int32_t value) : mValue(value) {}
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override{
         auto indent = std::string(depth*2, ' ');
         std::cout << indent << "Imm: " << mValue << std::endl;
     }
@@ -27,7 +27,7 @@ struct Imm : Operand {
 struct Register : Operand {
     std::string mName;
     Register(std::string name): mName(name) {}
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override {
         auto indent = std::string(depth*2, ' ');
         std::cout << indent << "Register: " << mName << std::endl;
     }
@@ -40,18 +40,18 @@ struct Instruction {
     virtual void print(uint32_t depth=0) const = 0;
 };
 
-struct Ret {
-    void print(uint32_t depth=0) const {
+struct Ret : Instruction{
+    void print(uint32_t depth=0) const override {
         auto indent = std::string(depth*2, ' ');
         std::cout << indent << "Ret" << std::endl;
     }
 };
 
-struct Mov {
+struct Mov : Instruction{
     std::unique_ptr<Operand> mSrc;
     std::unique_ptr<Operand> mDst;
     Mov(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst) : mSrc(std::move(src)), mDst(std::move(dst)) {}
-    void print(uint32_t depth=0) const {
+    void print(uint32_t depth=0) const override{
         auto indent = std::string(depth*2, ' ');
         std::cout << indent << "Mov:" << std::endl;
         std::cout << indent << "  " << "Source:" << std::endl;
