@@ -5,94 +5,113 @@
 #include <memory>
 #include <vector>
 #include <optional>
+#include <variant>
 
 namespace compiler::ast::asmb {
 
 // ------------------------------> Operands <------------------------------
 
-struct Operand {
-    virtual ~Operand() = default;
-    virtual void print(uint32_t depth=0) const = 0;
-};
-
-struct Imm : Operand {
+struct Imm {
     uint32_t mValue;
     Imm(int32_t value) : mValue(value) {}
-    void print(uint32_t depth=0) const override{
-        auto indent = std::string(depth*2, ' ');
-        std::cout << indent << "Imm: " << mValue << std::endl;
-    }
 };
 
-struct Register : Operand {
+struct Register {
     std::string mName;
-    Register(std::string name): mName(name) {}
-    void print(uint32_t depth=0) const override {
-        auto indent = std::string(depth*2, ' ');
-        std::cout << indent << "Register: " << mName << std::endl;
-    }
+    Register(std::string name) : mName(std::move(name)) {}
 };
+
+using Operand = std::variant<Imm, Register>;
 
 // ------------------------------> Instructions <------------------------------
 
-struct Instruction {
-    virtual ~Instruction() = default;
-    virtual void print(uint32_t depth=0) const = 0;
+struct Ret {
+    // No members needed for ret instruction
 };
 
-struct Ret : Instruction{
-    void print(uint32_t depth=0) const override {
-        auto indent = std::string(depth*2, ' ');
-        std::cout << indent << "Ret" << std::endl;
-    }
+struct Mov {
+    Operand mSrc;
+    Operand mDst;
+    Mov(Operand src, Operand dst) : mSrc(std::move(src)), mDst(std::move(dst)) {}
 };
 
-struct Mov : Instruction{
-    std::unique_ptr<Operand> mSrc;
-    std::unique_ptr<Operand> mDst;
-    Mov(std::unique_ptr<Operand> src, std::unique_ptr<Operand> dst) : mSrc(std::move(src)), mDst(std::move(dst)) {}
-    void print(uint32_t depth=0) const override{
-        auto indent = std::string(depth*2, ' ');
-        std::cout << indent << "Mov:" << std::endl;
-        std::cout << indent << "  " << "Source:" << std::endl;
-        mSrc->print(depth+2);
-        std::cout << indent << "  " << "Destination:" << std::endl;
-        mDst->print(depth+2);
-    }
-};
+using Instruction = std::variant<Ret, Mov>;
 
 // ------------------------------> Function Definition <------------------------------
 
 struct Function {
     std::optional<std::string> mIdentifier;
-    std::vector<std::unique_ptr<Instruction>> mInstructions;
-    Function(std::optional<std::string> mIdentifier, std::vector<std::unique_ptr<Instruction>> instructions)
-        : mIdentifier(mIdentifier), mInstructions(instructions) {}
-
-    void print(uint32_t depth=0) const {
-        std::string indent = std::string(depth*2, ' ');
-        if (mIdentifier.has_value())
-            std::cout << indent << "Function " << mIdentifier.value() << ":" << std::endl;
-        else
-            std::cout << indent << "Function " << ":" << std::endl;
-        
-        for (const std::unique_ptr<Instruction>& instruction : mInstructions) {
-            instruction->print(depth+1);
-        }
-    }
+    std::vector<Instruction> mInstructions;
+    
+    Function(std::optional<std::string> identifier, std::vector<Instruction> instructions)
+        : mIdentifier(std::move(identifier)), mInstructions(std::move(instructions)) {}
 };
 
 // ------------------------------> Program <------------------------------
 
 struct Program {
-    std::unique_ptr<Function> mFunction;
+    Function mFunction;
+    Program(Function function) : mFunction(std::move(function)) {}
+};
 
-    Program(std::unique_ptr<Function> function)
-        : mFunction(std::move(function)) {}
+// ------------------------------> Printing Utils <------------------------------
+
+// Print Visitor
+struct PrintVisitor {
+    uint32_t depth;
     
-    void print(uint32_t depth=0) const {
-        mFunction->print();
+    explicit PrintVisitor(uint32_t d = 0) : depth(d) {}
+    
+    std::string indent() const {
+        return std::string(depth * 2, ' ');
+    }
+    
+    // Operand visitors
+    void operator()(const Imm& imm) const {
+        std::cout << indent() << "Imm: " << imm.mValue << std::endl;
+    }
+    
+    void operator()(const Register& reg) const {
+        std::cout << indent() << "Register: " << reg.mName << std::endl;
+    }
+    
+    // Instruction visitors
+    void operator()(const Ret& ret) const {
+        std::cout << indent() << "Ret" << std::endl;
+    }
+    
+    void operator()(const Mov& mov) const {
+        std::cout << indent() << "Mov:" << std::endl;
+        std::cout << indent() << "  Source:" << std::endl;
+        std::visit(PrintVisitor(depth + 2), mov.mSrc);
+        std::cout << indent() << "  Destination:" << std::endl;
+        std::visit(PrintVisitor(depth + 2), mov.mDst);
     }
 };
+
+inline void printAST(const Operand& operand, uint32_t depth = 0) {
+    std::visit(PrintVisitor(depth), operand);
+}
+
+inline void printAST(const Instruction& instruction, uint32_t depth = 0) {
+    std::visit(PrintVisitor(depth), instruction);
+}
+
+inline void printAST(const Function& func, uint32_t depth = 0) {
+    std::string indent = std::string(depth * 2, ' ');
+    if (func.mIdentifier.has_value()) {
+        std::cout << indent << "Function " << func.mIdentifier.value() << ":" << std::endl;
+    } else {
+        std::cout << indent << "Function:" << std::endl;
+    }
+    
+    for (const auto& instruction : func.mInstructions) {
+        printAST(instruction, depth + 1);
+    }
+}
+
+inline void printAST(const Program& program, uint32_t depth = 0) {
+    printAST(program.mFunction, depth);
+}
 
 }
