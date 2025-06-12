@@ -30,8 +30,8 @@ using Val = std::variant<Constant, Var>;
 // ------------------------------> Instruction <------------------------------
 
 struct Return {
-    Val mValue;
-    Return(Val value) : mValue(std::move(value)) {}
+    Val mVal;
+    Return(Val val) : mVal(std::move(val)) {}
 };
 
 struct Unary {

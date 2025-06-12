@@ -1,3 +1,4 @@
+#pragma once
 #include "../ast/ast_c.hpp"
 #include "../ast/ast_asmb.hpp"
 #include <memory>
