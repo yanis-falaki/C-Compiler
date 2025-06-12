@@ -27,13 +27,18 @@ struct PrintVisitor {
         std::cout << indent() << "Constant: " << constant.mValue << std::endl;
     }
 
+    // Expressions - Unary Operators
+    void operator()(const UnaryOperator& unop) const {
+        std::visit(*this, unop);
+    }
+
     void operator()(const BitwiseComplement& complement) const {
         std::cout << indent() << "Bitwise Complement:"<< std::endl;
         std::visit(PrintVisitor(depth+1), *(complement.mExpr));
     }
 
     void operator()(const Negation& negation) const {
-        std::cout << indent() << "Bitwise Complement:"<< std::endl;
+        std::cout << indent() << "Negation:"<< std::endl;
         std::visit(PrintVisitor(depth+1), *(negation.mExpr));
     }
     
@@ -56,14 +61,6 @@ struct PrintVisitor {
     }
 };
 
-inline void printAST(const Expression& expr, uint32_t depth = 0) {
-    std::visit(PrintVisitor(depth), expr);
-}
-
-inline void printAST(const Statement& stmt, uint32_t depth = 0) {
-    std::visit(PrintVisitor(depth), stmt);
-}
-
 inline void printAST(const Function& func, uint32_t depth = 0) {
     std::string indent = std::string(depth * 2, ' ');
     if (func.mIdentifier.has_value()) {
@@ -71,7 +68,7 @@ inline void printAST(const Function& func, uint32_t depth = 0) {
     } else {
         std::cout << indent << "Function:" << std::endl;
     }
-    printAST(func.mBody, depth + 1);
+    std::visit(PrintVisitor(depth+1), func.mBody);
 }
 
 inline void printAST(const Program& program, uint32_t depth = 0) {

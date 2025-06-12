@@ -7,9 +7,9 @@ function_definition = Function(identifier name, statement body)
 statement = Return(exp value)
           | If(exp condition, statement then, statement? else)
 
-exp = Constant(int)
-    | BitwiseComplement(exp)
-    | Negation(exp)
+exp = Constant(int) | Unary(unary_operator, exp)
+
+unary_operator = Complement | Negate
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)
@@ -24,7 +24,9 @@ exp = Constant(int)
 
 <if> ::= "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 
-<exp> ::= <constant> | "~" <exp> | "-" <exp>
+<exp> ::= <constant> | <unop> <exp> | "(" <exp> ")"
+
+<unop> ::= "-" | "~"
 
 <identifier> ::= ? An identifier token ?
 

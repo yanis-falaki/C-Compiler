@@ -42,13 +42,43 @@ static ast::c::Constant parseConstant(lexer::LexList& lexList) {
     return ast::c::Constant(std::stoi(std::string(lexConstant.mSV)));
 }
 
+// ------------------------------> parseUnaryOp <------------------------------
+
+// forward declaration
+static ast::c::Expression parseExpession(lexer::LexList& lexList);
+
+static ast::c::UnaryOperator parseUnaryOp(lexer::LexList& lexList) {
+    const lexer::LexItem& lexUnaryOp = lexList.current();
+    lexList.advance();
+    auto expression = std::make_unique<ast::c::Expression>(parseExpession(lexList));
+
+    if (lexUnaryOp.mLexType == lexer::LexType::BitwiseComplement)
+        return ast::c::BitwiseComplement(std::move(expression));
+    else if (lexUnaryOp.mLexType == lexer::LexType::Negation)
+        return ast::c::Negation(std::move(expression));
+    
+    std::string errorString = std::format("parseUnaryOp was called without an implementation for the UnaryOp");
+    throw std::runtime_error(errorString);
+}
+
 // ------------------------------> parseExpression <------------------------------
 
 static ast::c::Expression parseExpession(lexer::LexList& lexList) {
     // Only works with constants for now
     const lexer::LexItem& lexExpression = lexList.current();
-    if (lexExpression.mLexType == lexer::LexType::Constant)
+    if (lexExpression.mLexType == lexer::LexType::Open_Parenthesis) {
+        lexList.advance();
+        auto expression = parseExpession(lexList);
+        lexList.advance();
+        return expression;
+    }
+    else if (lexExpression.mLexType == lexer::LexType::Constant)
         return parseConstant(lexList);
+    else if (lexExpression.mLexType == lexer::LexType::BitwiseComplement ||
+             lexExpression.mLexType == lexer::LexType::Negation ||
+             lexExpression.mLexType == lexer::LexType::Decrement)
+        return parseUnaryOp(lexList);
+
 
     std::string errorString = std::format("Expected an expression, instead got: {}", lexExpression.mSV);
     throw std::runtime_error(errorString);

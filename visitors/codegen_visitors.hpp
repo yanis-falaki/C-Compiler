@@ -14,10 +14,15 @@ struct convertVisitor {
         return ast::asmb::Imm(constant.mValue);
     }
 
-    // not yet implemented
+    // Expression - Unary Ops, not yet implemented
+    ast::asmb::Imm operator() (const ast::c::UnaryOperator& unop) const {
+        return std::visit(*this, unop);
+    }
+
     ast::asmb::Imm operator() (const ast::c::BitwiseComplement& complement) const {
         return ast::asmb::Imm(0);
     }
+
     ast::asmb::Imm operator() (const ast::c::Negation& negation) const {
         return ast::asmb::Imm(0);
     }

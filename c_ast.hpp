@@ -14,7 +14,8 @@ namespace compiler::ast::c {
 struct Constant;
 struct BitwiseComplement;
 struct Negation;
-using Expression = std::variant<Constant, BitwiseComplement>;
+using UnaryOperator = std::variant<BitwiseComplement, Negation>;
+using Expression = std::variant<Constant, UnaryOperator>;
 
 struct Constant {
     int mValue;
