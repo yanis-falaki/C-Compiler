@@ -7,11 +7,11 @@
 #include <fstream>
 #include "utils.h"
 #include "lexer.hpp"
-#include "ast/c_ast.hpp"
+#include "ast/ast_c.hpp"
 #include "parser.hpp"
-#include "visitors/asmb_ast_visitors.hpp"
-#include "visitors/c_ast_visitors.hpp"
-#include "visitors/codegen_visitors.hpp"
+#include "visitors/ast_asmb_visitors.hpp"
+#include "visitors/ast_c_visitors.hpp"
+#include "visitors/c_to_asmb.hpp"
 #include "visitors/code_emission_visitors.hpp"
 
 namespace fs = std::filesystem;

@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "ast/c_ast.hpp"
+#include "ast/ast_c.hpp"
 #include "lexer.hpp"
 
 namespace compiler::parser {

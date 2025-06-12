@@ -6,7 +6,7 @@
 #include <vector>
 #include <optional>
 #include <variant>
-#include "../ast/c_ast.hpp"
+#include "../ast/ast_c.hpp"
 
 namespace compiler::ast::c {
 

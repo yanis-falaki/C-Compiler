@@ -1,5 +1,5 @@
-#include "../ast/c_ast.hpp"
-#include "../ast/asmb_ast.hpp"
+#include "../ast/ast_c.hpp"
+#include "../ast/ast_asmb.hpp"
 #include <memory>
 #include <sstream>
 #include <format>
@@ -8,7 +8,7 @@ namespace compiler::codegen {
 
 // ------------------------------> Conversion from C AST to assembly AST <------------------------------
 
-struct convertVisitor {
+struct convertFromCToAsmb {
     // Expression visitors
     ast::asmb::Imm operator() (const ast::c::Constant& constant) const {
         return ast::asmb::Imm(constant.mValue);
@@ -44,7 +44,7 @@ struct convertVisitor {
 };
 
 inline ast::asmb::Function convertFunction(const ast::c::Function& functionNode) {
-    return ast::asmb::Function(functionNode.mIdentifier, std::visit(convertVisitor{}, functionNode.mBody));
+    return ast::asmb::Function(functionNode.mIdentifier, std::visit(convertFromCToAsmb{}, functionNode.mBody));
 }
 
 inline ast::asmb::Program convertProgram(const ast::c::Program& program) {
