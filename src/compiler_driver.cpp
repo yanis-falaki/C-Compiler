@@ -130,7 +130,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
 
-    auto loweredProgram = compiler::codegen::convertProgram(program);
+    auto loweredProgram = compiler::codegen::convertCProgramToAsmb(program);
     if (args.count("codegen")) {
         compiler::ast::asmb::printAST(loweredProgram);
         return fs::path();

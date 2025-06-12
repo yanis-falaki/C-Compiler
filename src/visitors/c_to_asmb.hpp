@@ -35,12 +35,12 @@ struct convertFromCToAsmb {
     }
 };
 
-inline ast::asmb::Function convertFunction(const ast::c::Function& functionNode) {
+inline ast::asmb::Function convertCFunctionToAsmb(const ast::c::Function& functionNode) {
     return ast::asmb::Function(functionNode.mIdentifier, std::visit(convertFromCToAsmb{}, functionNode.mBody));
 }
 
-inline ast::asmb::Program convertProgram(const ast::c::Program& program) {
-    return ast::asmb::Program(convertFunction(program.mFunction));
+inline ast::asmb::Program convertCProgramToAsmb(const ast::c::Program& program) {
+    return ast::asmb::Program(convertCFunctionToAsmb(program.mFunction));
 }
 
 }

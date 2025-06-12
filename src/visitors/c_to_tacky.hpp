@@ -5,5 +5,9 @@
 #include <format>
 
 namespace compiler::codegen {
-    
+
+struct convertFromCToTacky {
+
+};
+
 }
