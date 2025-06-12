@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <concepts>
+#include <iostream>
 
 namespace compiler::lexer {
 
@@ -12,6 +13,9 @@ enum class LexType {
     Undefined,
     Identifier,
     Constant,
+    BitwiseComplement,
+    Negation,
+    Decrement,
     Int,
     Void,
     Return,
@@ -29,6 +33,9 @@ inline constexpr std::string_view lexTypeToStr(LexType type) {
         case LexType::Undefined:          return "Undefined";
         case LexType::Identifier:         return "Identifier";
         case LexType::Constant:           return "Constant";
+        case LexType::BitwiseComplement:  return "~";
+        case LexType::Negation:           return "-";
+        case LexType::Decrement:          return "--";
         case LexType::Int:                return "int";
         case LexType::Void:               return "void";
         case LexType::Return:             return "return";
@@ -86,6 +93,19 @@ public:
     /// @brief Increment the internal current index by 1.
     void advance() {
         ++mCurrentIndex;
+    }
+
+    /// @brief Print the contents of the list
+    void print(std::ostream& os = std::cout) const {
+        size_t i = 0;
+        for (const auto& item : mLexVector) {
+            os << i << ": " << lexTypeToStr(item.mLexType);
+            if (item.mLexType == LexType::Identifier)
+                std::cout << ": " << item.mSV << std::endl;
+            else
+                std::cout << std::endl;
+            ++i;
+        }
     }
 };
 

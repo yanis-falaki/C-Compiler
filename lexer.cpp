@@ -37,6 +37,9 @@ static std::pair<LexType, std::string_view> checkForType(std::string_view sv) {
     else if(sv[0] == '{') return std::make_pair(LexType::Open_Brace, "{");
     else if(sv[0] == '}') return std::make_pair(LexType::Close_Brace, "}");
     else if(sv[0] == ';') return std::make_pair(LexType::Semicolon, ";");
+    else if (sv[0] == '-' && sv[1] =='-') return std::make_pair(LexType::Decrement, "--");
+    else if (sv[0] == '-') return std::make_pair(LexType::Negation, "-");
+    else if (sv[0] == '~') return std::make_pair(LexType::BitwiseComplement, "~");
     else return std::make_pair(LexType::Undefined, m);
 }
 
