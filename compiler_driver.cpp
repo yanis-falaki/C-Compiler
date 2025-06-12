@@ -111,9 +111,9 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     auto lexList = compiler::lexer::lexer(sourceString);
     if (args.count("lex")) return fs::path();
 
-    auto programPtr = compiler::parser::parseProgram(lexList);
+    auto program = compiler::parser::parseProgram(lexList);
     if (args.count("parse")) {
-        programPtr->print();
+        compiler::ast::c::printAST(program);
         return fs::path();
     }
 

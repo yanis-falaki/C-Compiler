@@ -4,5 +4,5 @@
 #include "lexer.hpp"
 
 namespace compiler::parser {
-    std::unique_ptr<ast::c::Program> parseProgram(lexer::LexList& lexList);
+    ast::c::Program parseProgram(lexer::LexList& lexList);
 }

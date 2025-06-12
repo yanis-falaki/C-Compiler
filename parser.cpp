@@ -37,14 +37,14 @@ const lexer::LexItem& expectNoAdvance(lexer::LexType expectedLexType, lexer::Lex
 
 // ------------------------------> parseConstant <------------------------------
 
-static std::unique_ptr<ast::c::Constant> parseConstant(lexer::LexList& lexList) {
+static ast::c::Constant parseConstant(lexer::LexList& lexList) {
     const lexer::LexItem& lexConstant = expectAndAdvance(lexer::LexType::Constant, lexList);
-    return std::make_unique<ast::c::Constant>(std::stoi(std::string(lexConstant.mSV)));
+    return ast::c::Constant(std::stoi(std::string(lexConstant.mSV)));
 }
 
 // ------------------------------> parseExpression <------------------------------
 
-static std::unique_ptr<ast::c::Expression> parseExpession(lexer::LexList& lexList) {
+static ast::c::Expression parseExpession(lexer::LexList& lexList) {
     // Only works with constants for now
     const lexer::LexItem& lexExpression = lexList.current();
     if (lexExpression.mLexType == lexer::LexType::Constant)
@@ -56,17 +56,17 @@ static std::unique_ptr<ast::c::Expression> parseExpession(lexer::LexList& lexLis
 
 // ------------------------------> parseReturn <------------------------------
 
-static std::unique_ptr<ast::c::Return> parseReturn(lexer::LexList& lexList) {
+static ast::c::Return parseReturn(lexer::LexList& lexList) {
     expectAndAdvance(lexer::LexType::Return, lexList);
-    auto expression = parseExpession(lexList);
+    auto returnObject = ast::c::Return(parseExpession(lexList));
     expectAndAdvance(lexer::LexType::Semicolon, lexList);
-    return std::make_unique<ast::c::Return>(std::move(expression));
+    return returnObject;
 }
 
 // ------------------------------> parseStatement <------------------------------
 
-static std::unique_ptr<ast::c::Statement> parseStatement(lexer::LexList& lexList) {
-    // Parse statement
+static ast::c::Statement parseStatement(lexer::LexList& lexList) {
+    // Parse statement, only handles Return for now
     const lexer::LexItem& lexStatement = lexList.current();
     if (lexStatement.mLexType == lexer::LexType::Return)
         return parseReturn(lexList);
@@ -77,7 +77,7 @@ static std::unique_ptr<ast::c::Statement> parseStatement(lexer::LexList& lexList
 
 // ------------------------------> parseFunction <------------------------------
 
-static std::unique_ptr<ast::c::Function> parseFunction(lexer::LexList& lexList) {
+static ast::c::Function parseFunction(lexer::LexList& lexList) {
     // Check for keyword void
     expectAndAdvance(lexer::LexType::Int, lexList);
 
@@ -92,25 +92,25 @@ static std::unique_ptr<ast::c::Function> parseFunction(lexer::LexList& lexList) 
     // Opening brace
     expectAndAdvance(lexer::LexType::Open_Brace, lexList);
 
-    // Statement
-    auto statement = parseStatement(lexList);
+    // Create return function.
+    auto returnedFunction = ast::c::Function(std::string(lexIdentifier.mSV), parseStatement(lexList));
 
     // Closing brace
     expectAndAdvance(lexer::LexType::Close_Brace, lexList);
 
-    return std::make_unique<ast::c::Function>(std::string(lexIdentifier.mSV), std::move(statement));
+    return returnedFunction;
 }
 
 // ------------------------------> parseProgram <------------------------------
 
-std::unique_ptr<ast::c::Program> parseProgram(lexer::LexList& lexList) {
+ast::c::Program parseProgram(lexer::LexList& lexList) {
     // For now the program can only take a single function.
-    auto function = parseFunction(lexList);
+    auto returnedProgram = ast::c::Program(parseFunction(lexList));
 
     if (lexList.hasCurrent())
         throw std::runtime_error("Program can only contain one top level function (for now)");
 
-    return std::make_unique<ast::c::Program>(std::move(function));
+    return returnedProgram;
 }
 
 }
