@@ -13,7 +13,7 @@ struct convertVisitor {
     // Statement visitors
     std::vector<ast::asmb::Instruction> operator() (const ast::c::Return& returnNode) const {
         std::vector<ast::asmb::Instruction> instructions(2);
-        instructions[0] = ast::asmb::Mov(std::visit(*this, returnNode.mExpr), ast::asmb::Register("exp"));
+        instructions[0] = ast::asmb::Mov(std::visit(*this, returnNode.mExpr), ast::asmb::Register("eax"));
         instructions[1] = ast::asmb::Ret();
         return instructions;
     }
