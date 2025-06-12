@@ -6,7 +6,7 @@
 #include <vector>
 #include <optional>
 #include <variant>
-#include "../asmb_ast.hpp"
+#include "../ast/asmb_ast.hpp"
 
 namespace compiler::ast::asmb {
 

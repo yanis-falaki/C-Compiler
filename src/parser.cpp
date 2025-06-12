@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <format>
 #include "lexer.hpp"
-#include "c_ast.hpp"
+#include "ast/c_ast.hpp"
 #include "parser.hpp"
 #include "utils.h"
 

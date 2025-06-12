@@ -43,3 +43,16 @@ instruction = Mov(operand src, operand dst) | Ret
 
 operand = Imm(int) | Register
 ```
+
+# Tacky IR ASDL
+```
+program = Program(function_definition)
+
+function_definition = Function(identifier, instruction* body)
+
+instruction = Return(val) | Unary(unary_operator, val src, val dst)
+
+val = Constant(int) | Var(identifier)
+
+unary_operator = Complement | Negate
+```

@@ -7,7 +7,7 @@
 #include <fstream>
 #include "utils.h"
 #include "lexer.hpp"
-#include "c_ast.hpp"
+#include "ast/c_ast.hpp"
 #include "parser.hpp"
 #include "visitors/asmb_ast_visitors.hpp"
 #include "visitors/c_ast_visitors.hpp"

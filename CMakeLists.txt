@@ -5,4 +5,4 @@ set(CMAKE_CXX_STANDARD 20)
 
 include_directories(${CMAKE_SOURCE_DIR}/include/)
 
-add_executable(compiler compiler_driver.cpp lexer.cpp parser.cpp)
+add_executable(compiler src/compiler_driver.cpp src/lexer.cpp src/parser.cpp)
