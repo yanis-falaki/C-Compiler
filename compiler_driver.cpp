@@ -9,7 +9,10 @@
 #include "lexer.hpp"
 #include "c_ast.hpp"
 #include "parser.hpp"
-#include "codegen.hpp"
+#include "visitors/asmb_ast_visitors.hpp"
+#include "visitors/c_ast_visitors.hpp"
+#include "visitors/codegen_visitors.hpp"
+#include "visitors/code_emission_visitors.hpp"
 
 namespace fs = std::filesystem;
 
@@ -134,7 +137,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     // Write assembly to file
     std::ofstream out(dest_path);
-    out << compiler::codegen::emitAsmbProgram(loweredProgram);
+    out << compiler::code_emission::emitAsmbProgram(loweredProgram);
     out.close();
 
     return fs::path(dest_path);

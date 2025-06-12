@@ -8,6 +8,8 @@ statement = Return(exp value)
           | If(exp condition, statement then, statement? else)
 
 exp = Constant(int)
+    | BitwiseComplement(exp)
+    | Negation(exp)
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)
@@ -22,7 +24,7 @@ exp = Constant(int)
 
 <if> ::= "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 
-<exp> ::= <constant>
+<exp> ::= <constant> | "~" <exp> | "-" <exp>
 
 <identifier> ::= ? An identifier token ?
 
