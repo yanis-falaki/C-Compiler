@@ -46,7 +46,7 @@ struct PrintVisitor {
 
     void operator()(const Return& ret) const {
         std::cout << indent() << "Return:\n";
-        std::visit(*this, ret.mVal);
+        std::visit(PrintVisitor(depth+1), ret.mVal);
     }
 
     void operator()(const Unary& unary) const {
@@ -60,7 +60,7 @@ struct PrintVisitor {
 
 inline void printAST(const Function& func, uint32_t depth = 0) {
     std::string indent = std::string(depth * 2, ' ');
-    std::cout << indent << "Function:" << std::endl;
+    std::cout << indent << "Function " << func.mIdentifier << ":\n";
     for (const auto& instruction : func.mBody) {
         std::visit(PrintVisitor{depth+1}, instruction);
     }

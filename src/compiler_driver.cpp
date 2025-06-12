@@ -11,7 +11,9 @@
 #include "parser.hpp"
 #include "visitors/ast_asmb_visitors.hpp"
 #include "visitors/ast_c_visitors.hpp"
+#include "visitors/ast_tacky_visitors.hpp"
 #include "visitors/c_to_asmb.hpp"
+#include "visitors/c_to_tacky.hpp"
 #include "visitors/code_emission_visitors.hpp"
 
 namespace fs = std::filesystem;
@@ -30,6 +32,7 @@ int main(int argc, char* argv[]) {
         ("S,assembly", "Stop at assembly generation")
         ("lex", "Stop at lexing")
         ("parse", "Stop at parsing")
+        ("tacky", "Stop at tacky AST generation")
         ("codegen", "Stop at assembly generation");
 
     options.parse_positional({"source"});
@@ -130,12 +133,14 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
 
-    auto loweredProgram = compiler::codegen::convertCProgramToAsmb(program);
-    if (args.count("codegen")) {
-        compiler::ast::asmb::printAST(loweredProgram);
+    auto tackyProgram = compiler::codegen::convertCProgramToTacky(program);
+    if (args.count("tacky")) {
+        compiler::ast::tacky::printAST(tackyProgram);
         return fs::path();
     }
 
+    return fs::path();
+/*
     std::string dest_path = std::format("{}.s", output_path.string());
 
     // Write assembly to file
@@ -144,6 +149,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     out.close();
 
     return fs::path(dest_path);
+*/
 }
 
 

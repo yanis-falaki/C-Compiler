@@ -9,7 +9,7 @@ namespace compiler::codegen {
 
 // ------------------------------> Conversion from C AST to assembly AST <------------------------------
 
-struct convertFromCToAsmb {
+struct ConvertFromCToAsmb {
     // Expression visitors
     ast::asmb::Imm operator() (const ast::c::Constant& constant) const {
         return ast::asmb::Imm(constant.mValue);
@@ -36,7 +36,7 @@ struct convertFromCToAsmb {
 };
 
 inline ast::asmb::Function convertCFunctionToAsmb(const ast::c::Function& functionNode) {
-    return ast::asmb::Function(functionNode.mIdentifier, std::visit(convertFromCToAsmb{}, functionNode.mBody));
+    return ast::asmb::Function(functionNode.mIdentifier, std::visit(ConvertFromCToAsmb{}, functionNode.mBody));
 }
 
 inline ast::asmb::Program convertCProgramToAsmb(const ast::c::Program& program) {

@@ -10,7 +10,7 @@ namespace compiler::code_emission {
 // ------------------------------> Code Emission <------------------------------
 // A lot of copying, but I'm okay with it for now as it makes it more readable.
 
-struct emitAsmbVisitor {
+struct EmitAsmbVisitor {
     // operator visitors
     std::string operator() (const ast::asmb::Imm& imm) const {
         return std::format("${}", imm.mValue);
@@ -36,7 +36,7 @@ inline std::string emitAsmbFunction(const ast::asmb::Function& function) {
     ss << function.mIdentifier.value() << ":\n";
     
     for (auto& instruction : function.mInstructions) {
-        ss << "\t" << std::visit(emitAsmbVisitor{}, instruction) << "\n";
+        ss << "\t" << std::visit(EmitAsmbVisitor{}, instruction) << "\n";
     }
 
     return ss.str();

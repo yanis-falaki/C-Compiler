@@ -16,8 +16,6 @@ enum class UnaryOperator {
     Negate
 };
 
-
-
 // ------------------------------> Expressions <------------------------------
 
 struct Constant;
@@ -33,16 +31,6 @@ struct Unary {
     UnaryOperator mOp;
     std::unique_ptr<Expression> mExpr;
     Unary(UnaryOperator op, std::unique_ptr<Expression> expr) : mOp(op), mExpr(std::move(expr)) {}
-};
-
-struct BitwiseComplement {
-    std::unique_ptr<Expression> mExpr;
-    BitwiseComplement(std::unique_ptr<Expression> expr): mExpr(std::move(expr)) {}
-};
-
-struct Negation {
-    std::unique_ptr<Expression> mExpr;
-    Negation(std::unique_ptr<Expression> expr): mExpr(std::move(expr)) {}
 };
 
 // ------------------------------> Statements <------------------------------
