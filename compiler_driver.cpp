@@ -8,6 +8,7 @@
 #include "lexer.hpp"
 #include "c_ast.hpp"
 #include "parser.hpp"
+#include "codegen.hpp"
 
 namespace fs = std::filesystem;
 
@@ -102,9 +103,6 @@ fs::path preprocess_file(fs::path source_path, fs::path output_path, const cxxop
 
 
 fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args) {
-    if (args.count("codegen"))
-        return fs::path();
-
     std::string sourceString = Utils::readFile(source_path);
 
     
@@ -114,6 +112,12 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     auto program = compiler::parser::parseProgram(lexList);
     if (args.count("parse")) {
         compiler::ast::c::printAST(program);
+        return fs::path();
+    }
+
+    auto loweredProgram = compiler::codegen::convertProgram(program);
+    if (args.count("codegen")) {
+        compiler::ast::asmb::printAST(loweredProgram);
         return fs::path();
     }
 
