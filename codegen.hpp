@@ -52,7 +52,7 @@ struct emitAsmbVisitor {
 
     // Instruction visitors
     std::string operator() (const ast::asmb::Mov& mov) const {
-        return std::format("mov {}, {}", std::visit(*this, mov.mSrc), std::visit(*this, mov.mDst));
+        return std::format("movl {}, {}", std::visit(*this, mov.mSrc), std::visit(*this, mov.mDst));
     }
 
     std::string operator() (const ast::asmb::Ret ret) const {
