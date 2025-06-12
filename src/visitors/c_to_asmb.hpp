@@ -15,19 +15,10 @@ struct convertFromCToAsmb {
         return ast::asmb::Imm(constant.mValue);
     }
 
-    // Expression - Unary Ops, not yet implemented
-    ast::asmb::Imm operator() (const ast::c::UnaryOperator& unop) const {
-        return std::visit(*this, unop);
+    // Expression Unary
+    ast::asmb::Imm operator() (const ast::c::Unary& unary) const {
+        return std::visit(*this, *unary.mExpr);
     }
-
-    ast::asmb::Imm operator() (const ast::c::BitwiseComplement& complement) const {
-        return ast::asmb::Imm(0);
-    }
-
-    ast::asmb::Imm operator() (const ast::c::Negation& negation) const {
-        return ast::asmb::Imm(0);
-    }
-
 
     // Statement visitors
     std::vector<ast::asmb::Instruction> operator() (const ast::c::Return& returnNode) const {

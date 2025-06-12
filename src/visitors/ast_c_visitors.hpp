@@ -10,6 +10,14 @@
 
 namespace compiler::ast::c {
 
+constexpr std::string_view unary_op_to_string(UnaryOperator op) {
+    switch (op) {
+        case UnaryOperator::Complement: return "Complement";
+        case UnaryOperator::Negate:     return "Negate";
+    }
+    return "Unknown";
+}
+
 // ------------------------------> Printing Utils <------------------------------
 
 // Print Visitor
@@ -27,19 +35,9 @@ struct PrintVisitor {
         std::cout << indent() << "Constant: " << constant.mValue << std::endl;
     }
 
-    // Expressions - Unary Operators
-    void operator()(const UnaryOperator& unop) const {
-        std::visit(*this, unop);
-    }
-
-    void operator()(const BitwiseComplement& complement) const {
-        std::cout << indent() << "Bitwise Complement:"<< std::endl;
-        std::visit(PrintVisitor(depth+1), *(complement.mExpr));
-    }
-
-    void operator()(const Negation& negation) const {
-        std::cout << indent() << "Negation:"<< std::endl;
-        std::visit(PrintVisitor(depth+1), *(negation.mExpr));
+    void operator()(const Unary& unary) const {
+        std::cout << indent() << "Unary: " << unary_op_to_string(unary.mOp) << std::endl;
+        std::visit(PrintVisitor(depth+1), *unary.mExpr);
     }
     
     // Statement visitors

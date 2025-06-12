@@ -9,17 +9,30 @@
 
 namespace compiler::ast::c {
 
+// ------------------------------> Unary Operator <------------------------------
+
+enum class UnaryOperator {
+    Complement,
+    Negate
+};
+
+
+
 // ------------------------------> Expressions <------------------------------
 
 struct Constant;
-struct BitwiseComplement;
-struct Negation;
-using UnaryOperator = std::variant<BitwiseComplement, Negation>;
-using Expression = std::variant<Constant, UnaryOperator>;
+struct Unary;
+using Expression = std::variant<Constant, Unary>;
 
 struct Constant {
     int mValue;
     Constant(int constant) : mValue(constant) {}
+};
+
+struct Unary {
+    UnaryOperator mOp;
+    std::unique_ptr<Expression> mExpr;
+    Unary(UnaryOperator op, std::unique_ptr<Expression> expr) : mOp(op), mExpr(std::move(expr)) {}
 };
 
 struct BitwiseComplement {

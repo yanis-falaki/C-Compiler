@@ -47,15 +47,15 @@ static ast::c::Constant parseConstant(lexer::LexList& lexList) {
 // forward declaration
 static ast::c::Expression parseExpession(lexer::LexList& lexList);
 
-static ast::c::UnaryOperator parseUnaryOp(lexer::LexList& lexList) {
-    const lexer::LexItem& lexUnaryOp = lexList.current();
+static ast::c::Unary parseUnaryOp(lexer::LexList& lexList) {
+    const lexer::LexItem& lexUnary = lexList.current();
     lexList.advance();
     auto expression = std::make_unique<ast::c::Expression>(parseExpession(lexList));
 
-    if (lexUnaryOp.mLexType == lexer::LexType::BitwiseComplement)
-        return ast::c::BitwiseComplement(std::move(expression));
-    else if (lexUnaryOp.mLexType == lexer::LexType::Negation)
-        return ast::c::Negation(std::move(expression));
+    if (lexUnary.mLexType == lexer::LexType::BitwiseComplement)
+        return ast::c::Unary(ast::c::UnaryOperator::Complement, std::move(expression));
+    else if (lexUnary.mLexType == lexer::LexType::Negation)
+        return ast::c::Unary(ast::c::UnaryOperator::Negate, std::move(expression));
     
     std::string errorString = std::format("parseUnaryOp was called without an implementation for the UnaryOp");
     throw std::runtime_error(errorString);
