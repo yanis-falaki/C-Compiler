@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include "utils.h"
 #include "lexer.hpp"
 #include "c_ast.hpp"
@@ -20,7 +21,7 @@ int main(int argc, char* argv[]) {
     cxxopts::Options options("Compiler Driver", "Driver for my C Compiler");
     options.add_options()
         ("s,source", "Source file", cxxopts::value<fs::path>())
-        ("o,output", "Output File", cxxopts::value<fs::path>()->default_value("./a.out"))
+        ("o,output", "Output File", cxxopts::value<fs::path>())
         ("P,no-linemarkers", "No linemarkers")
         ("E,preprocess", "Stop at preprocessing")
         ("S,assembly", "Stop at assembly generation")
@@ -32,13 +33,21 @@ int main(int argc, char* argv[]) {
 
     auto args = options.parse(argc, argv);
 
+    fs::path source_path;
+    fs::path output_path;
+
     if (!args.count("source")) {
         std::cerr << "Source file must be specified\n";
         return 1;
     }
+    source_path = args["source"].as<fs::path>();
 
-    fs::path source_path = args["source"].as<fs::path>();
-    fs::path output_path = args["output"].as<fs::path>();
+    if (args.count("output")) {
+        output_path = args["output"].as<fs::path>();
+    } else {
+        output_path = source_path;
+        output_path.replace_extension();  // removes .c or whatever is there
+    }
 
     // Preprocessing Stage
     fs::path preprocessed_path;
@@ -122,10 +131,12 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     }
 
     std::string dest_path = std::format("{}.s", output_path.string());
-    std::string command = std::format("gcc -S {} -o {}", source_path.string(), dest_path);
-    if(system(command.c_str())) {
-        throw std::runtime_error("Sys command error");
-    }
+
+    // Write assembly to file
+    std::ofstream out(dest_path);
+    out << compiler::codegen::emitAsmbProgram(loweredProgram);
+    out.close();
+
     return fs::path(dest_path);
 }
 
