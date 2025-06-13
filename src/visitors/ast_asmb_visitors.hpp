@@ -28,7 +28,15 @@ struct PrintVisitor {
     }
     
     void operator()(const Reg& reg) const {
-        std::cout << indent() << "Reg: " << reg.mName << std::endl;
+        std::cout << indent() << "Reg: " << reg_name_to_string(reg.mReg) << std::endl;
+    }
+
+    void operator()(const Pseudo& pseudo) const {
+        std::cout << indent() << "Pseudo: " << pseudo.mName << std::endl;
+    }
+
+    void operator()(const Stack& stack) const {
+        std::cout << indent() << "Stack: " << stack.mLocation << std::endl;
     }
     
     // Instruction visitors
@@ -42,6 +50,16 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth + 2), mov.mSrc);
         std::cout << indent() << "  Destination:" << std::endl;
         std::visit(PrintVisitor(depth + 2), mov.mDst);
+    }
+
+    void operator()(const Unary& unary) const {
+        std::cout << indent() << "Unary: " << unary_op_to_string(unary.mOp) << std::endl;
+        std::cout << indent() << "  " << "Operand:\n";
+        std::visit(PrintVisitor(depth+2), unary.mOperand);
+    }
+
+    void operator()(const AllocateStack& allocateStack) const {
+        std::cout << indent() << "Allocate Stack: " << allocateStack.mValue << std::endl;
     }
 };
 

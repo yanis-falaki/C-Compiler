@@ -13,6 +13,14 @@ enum class UnaryOperator {
     Negate
 };
 
+constexpr std::string_view unary_op_to_string(UnaryOperator op) {
+    switch (op) {
+        case UnaryOperator::Complement: return "Complement";
+        case UnaryOperator::Negate:     return "Negate";
+    }
+    return "Unknown"; // Optional, unreachable with exhaustive handling
+}
+
 // ------------------------------> Val <------------------------------
 
 struct Constant {

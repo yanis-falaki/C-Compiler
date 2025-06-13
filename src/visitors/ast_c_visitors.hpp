@@ -10,14 +10,6 @@
 
 namespace compiler::ast::c {
 
-constexpr std::string_view unary_op_to_string(UnaryOperator op) {
-    switch (op) {
-        case UnaryOperator::Complement: return "Complement";
-        case UnaryOperator::Negate:     return "Negate";
-    }
-    return "Unknown";
-}
-
 // ------------------------------> Printing Utils <------------------------------
 
 // Print Visitor

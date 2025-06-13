@@ -17,7 +17,7 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Reg& reg) const {
-        return std::format("\%{}", reg.mName);
+        return std::format("\%{}", ast::asmb::reg_name_to_string(reg.mReg));
     }
 
     // Instruction visitors
@@ -27,6 +27,12 @@ struct EmitAsmbVisitor {
 
     std::string operator() (const ast::asmb::Ret ret) const {
         return "ret";
+    }
+
+    // Fallback catch-all template for any unhandled types
+    template<typename T>
+    std::string operator()(const T&) const {
+        throw std::runtime_error("Unhandled variant type in EmitAsmbVisitor");
     }
 };
 

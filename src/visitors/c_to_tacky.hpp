@@ -20,12 +20,12 @@ inline std::string makeTemporary() {
 
 // ------------------------------> Map between TACKY unops and C unops <------------------------------
 
-inline constexpr ast::tacky::UnaryOperator convert_unop(ast::c::UnaryOperator unop) {
+inline constexpr ast::tacky::UnaryOperator c_to_tacky_unop(ast::c::UnaryOperator unop) {
     switch (unop) {
         case ast::c::UnaryOperator::Negate:          return ast::tacky::UnaryOperator::Negate;
         case ast::c::UnaryOperator::Complement:      return ast::tacky::UnaryOperator::Complement;
         default:
-            throw std::runtime_error("convert_unop received an unknown ast::c::UnaryOperator");
+            throw std::runtime_error("c_to_tacky_unop received an unknown ast::c::UnaryOperator");
             break;
     }
 }
@@ -44,7 +44,7 @@ struct ConvertFromCToTacky {
         ast::tacky::Val src = std::visit(*this, *unary.mExpr);
         std::string dstName = makeTemporary();
         ast::tacky::Var dst(dstName);
-        auto tacky_op = convert_unop(unary.mOp);
+        auto tacky_op = c_to_tacky_unop(unary.mOp);
         instructions.emplace_back(ast::tacky::Unary(tacky_op, src, dst));
         return dst;
     }

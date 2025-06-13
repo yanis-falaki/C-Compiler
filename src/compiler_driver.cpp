@@ -12,8 +12,8 @@
 #include "visitors/ast_asmb_visitors.hpp"
 #include "visitors/ast_c_visitors.hpp"
 #include "visitors/ast_tacky_visitors.hpp"
-#include "visitors/c_to_asmb.hpp"
 #include "visitors/c_to_tacky.hpp"
+#include "visitors/tacky_to_asmb.hpp"
 #include "visitors/code_emission_visitors.hpp"
 
 namespace fs = std::filesystem;
@@ -138,6 +138,9 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         compiler::ast::tacky::printAST(tackyProgram);
         return fs::path();
     }
+
+    auto asmbPass0 = compiler::codegen::tackyProgramToAsmb(tackyProgram);
+    compiler::ast::asmb::printAST(asmbPass0);
 
     return fs::path();
 /*
