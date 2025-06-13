@@ -39,9 +39,16 @@ program = Program(function_definition)
 
 function_definition = Function(identifier name, instruction* instructions)
 
-instruction = Mov(operand src, operand dst) | Ret
+instruction = Mov(operand src, operand dst) 
+            | Ret
+            | Unary(unary_operator, operand)
+            | AllocateStack(int)
 
-operand = Imm(int) | Register
+unary_operator = Neg | Not
+
+operand = Imm(int) | Reg(reg) | Pseudo(identifier) | Stack(int)
+
+reg = AX | R10
 ```
 
 # Tacky IR ASDL

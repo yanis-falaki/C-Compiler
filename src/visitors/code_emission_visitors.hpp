@@ -16,7 +16,7 @@ struct EmitAsmbVisitor {
         return std::format("${}", imm.mValue);
     }
 
-    std::string operator() (const ast::asmb::Register& reg) const {
+    std::string operator() (const ast::asmb::Reg& reg) const {
         return std::format("\%{}", reg.mName);
     }
 

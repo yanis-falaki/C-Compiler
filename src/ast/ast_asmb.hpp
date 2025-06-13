@@ -16,12 +16,12 @@ struct Imm {
     Imm(int32_t value) : mValue(value) {}
 };
 
-struct Register {
+struct Reg {
     std::string mName;
-    Register(std::string name) : mName(std::move(name)) {}
+    Reg(std::string name) : mName(std::move(name)) {}
 };
 
-using Operand = std::variant<Imm, Register>;
+using Operand = std::variant<Imm, Reg>;
 
 // ------------------------------> Instructions <------------------------------
 

@@ -27,8 +27,8 @@ struct PrintVisitor {
         std::cout << indent() << "Imm: " << imm.mValue << std::endl;
     }
     
-    void operator()(const Register& reg) const {
-        std::cout << indent() << "Register: " << reg.mName << std::endl;
+    void operator()(const Reg& reg) const {
+        std::cout << indent() << "Reg: " << reg.mName << std::endl;
     }
     
     // Instruction visitors
