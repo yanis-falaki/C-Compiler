@@ -132,16 +132,24 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         compiler::ast::c::PrintVisitor()(program);
         return fs::path();
     }
-    // (0th pass)
+    // Convert C to TACKY
     auto tackyProgram = compiler::codegen::convertCProgramToTacky(program);
     if (args.count("tacky")) {
         compiler::ast::tacky::PrintVisitor()(tackyProgram);
         return fs::path();
     }
 
-    compiler::ast::asmb::Program asmbPass0 = compiler::codegen::TackyToAsmb()(tackyProgram);
-    compiler::codegen::ReplacePseudoRegisters()(asmbPass0);
-    compiler::ast::asmb::PrintVisitor()(asmbPass0);
+    // 0th pass, asmb tree creation
+    compiler::ast::asmb::Program asmb = compiler::codegen::TackyToAsmb()(tackyProgram);
+    // 1st pass, removing pseudo-registers
+    uint32_t stackSize = compiler::codegen::ReplacePseudoRegisters()(asmb);
+    // 2nd pass, allocating stack memory and fixing memory-to-memory mov instructions
+    (compiler::codegen::FixUpAsmbInstructions(stackSize))(asmb);
+
+    if (args.count("codegen")) {
+        compiler::ast::asmb::PrintVisitor()(asmb);;
+        return fs::path();
+    }
 
     return fs::path();
 /*

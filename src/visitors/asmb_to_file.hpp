@@ -53,9 +53,77 @@ struct ReplacePseudoRegisters {
     }
 
     // Function visitor
-    void operator()(ast::asmb::Function& func) {
+    uint32_t operator()(ast::asmb::Function& func) {
         for (auto& instruction : func.mInstructions) {
             std::visit(*this, instruction);
+        }
+        return mLastStackLocation;
+    }
+
+    // Program visitor
+    uint32_t operator()(ast::asmb::Program& program) {
+        (*this)(program.mFunction);
+        return mLastStackLocation;
+    }
+};
+
+// ------------------------------> Fix up ASMB instructions (2nd Pass) <------------------------------
+
+struct FixUpAsmbInstructions {
+    std::vector<ast::asmb::Instruction>* mInstructions = nullptr;
+    size_t mInstructionCounter = 0;
+    uint32_t mStackSize;
+
+    // Force visitor to have stackSize parameter.
+    FixUpAsmbInstructions() = delete;
+    FixUpAsmbInstructions(uint32_t stackSize) : mStackSize(stackSize) {}
+
+    // Operand visitors
+    void operator()(const ast::asmb::Imm& imm) const {
+    }
+    
+    void operator()(const ast::asmb::Reg& reg) const {
+    }
+
+    void operator()(const ast::asmb::Pseudo& pseudo) const {
+    }
+
+    void operator()(const ast::asmb::Stack& stack) const {
+    }
+    
+    // Instruction visitors
+    void operator()(const ast::asmb::Ret& ret) const {}
+    
+    void operator()(ast::asmb::Mov& mov) {
+        if (!std::holds_alternative<ast::asmb::Stack>(mov.mSrc) ||
+            !std::holds_alternative<ast::asmb::Stack>(mov.mDst))
+            return;
+        // Otherwise this is a mem->mem mov operation which is not allowed.
+        auto stackDst = mov.mDst;
+        mov.mDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+        ast::asmb::Mov nextMovInstruction(mov.mDst, stackDst);
+        mInstructions->emplace(mInstructions->begin() + mInstructionCounter + 1, std::move(nextMovInstruction));
+    }
+
+    void operator()(const ast::asmb::Unary& unary) const {
+    }
+
+    void operator()(const ast::asmb::AllocateStack& allocateStack) const {
+    }
+
+    // Function visitor
+    void operator()(ast::asmb::Function& func) {
+        // Set mInstructions reference
+        mInstructions = &func.mInstructions;
+
+        // Add AllocateStack instruction
+        ast::asmb::AllocateStack allocateStackInstruction(mStackSize);
+        mInstructions->emplace(mInstructions->begin(), allocateStackInstruction);
+
+        // Fix any memory to memory mov instructions
+        while(mInstructionCounter < mInstructions->size()) {
+            std::visit(*this, (*mInstructions)[mInstructionCounter]);
+            ++mInstructionCounter;
         }
     }
 
@@ -100,7 +168,7 @@ struct EmitAsmbVisitor {
 
     std::string operator() (const ast::asmb::Unary unary) const {
         // Not yet implemented
-        throw std::runtime_error("allocateStack instruction not implemented in EmitAsmbVisitor");
+        throw std::runtime_error("unary instruction not implemented in EmitAsmbVisitor");
     }
 
     std::string operator() (const ast::asmb::AllocateStack allocateStack) const {
