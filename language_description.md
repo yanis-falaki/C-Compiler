@@ -7,9 +7,13 @@ function_definition = Function(identifier name, statement body)
 statement = Return(exp value)
           | If(exp condition, statement then, statement? else)
 
-exp = Constant(int) | Unary(unary_operator, exp)
+exp = Constant(int)
+    | Unary(unary_operator, exp)
+    | Binary(binary_operator, exp, exp)
 
 unary_operator = Complement | Negate
+
+binary_operator = Add | Subtract | Divide | Remainder
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)
@@ -33,6 +37,19 @@ unary_operator = Complement | Negate
 <constant> ::= ? A constant token ?
 ```
 
+# Tacky IR ASDL
+```
+program = Program(function_definition)
+
+function_definition = Function(identifier, instruction* body)
+
+instruction = Return(val) | Unary(unary_operator, val src, val dst)
+
+val = Constant(int) | Var(identifier)
+
+unary_operator = Complement | Negate
+```
+
 # Assembly AST ASDL:
 ```
 program = Program(function_definition)
@@ -49,17 +66,4 @@ unary_operator = Neg | Not
 operand = Imm(int) | Reg(reg) | Pseudo(identifier) | Stack(int)
 
 reg = AX | R10
-```
-
-# Tacky IR ASDL
-```
-program = Program(function_definition)
-
-function_definition = Function(identifier, instruction* body)
-
-instruction = Return(val) | Unary(unary_operator, val src, val dst)
-
-val = Constant(int) | Var(identifier)
-
-unary_operator = Complement | Negate
 ```
