@@ -61,7 +61,7 @@ struct Stack {
     Stack(int32_t location) : mLocation(location) {}
 };
 
-using Operand = std::variant<Imm, Reg, Pseudo>;
+using Operand = std::variant<Imm, Reg, Pseudo, Stack>;
 
 // ------------------------------> Instructions <------------------------------
 
