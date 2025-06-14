@@ -105,4 +105,10 @@ struct Program {
     Program(Function function) : mFunction(std::move(function)) {}
 };
 
+// ------------------------------> Node <------------------------------
+
+using Node = std::variant<Program, Function,
+                          AllocateStack, Mov, Ret,
+                          Stack, Pseudo, Reg, Imm>;
+
 }

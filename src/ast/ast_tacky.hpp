@@ -69,4 +69,10 @@ struct Program {
     Program(Function function) : mFunction(std::move(function)) {}
 };
 
+// ------------------------------> Node  <------------------------------
+
+using Node = std::variant<Program, Function,
+                          Unary, Return,
+                          Var, Constant>;
+
 }

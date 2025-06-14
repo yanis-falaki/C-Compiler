@@ -139,7 +139,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
 
-    auto asmbPass0 = compiler::codegen::tackyProgramToAsmb(tackyProgram);
+    auto asmbPass0 = compiler::codegen::TackyToAsmb()(tackyProgram);
     compiler::ast::asmb::printAST(asmbPass0);
 
     return fs::path();
