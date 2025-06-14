@@ -151,17 +151,14 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
 
-    return fs::path();
-/*
     std::string dest_path = std::format("{}.s", output_path.string());
 
     // Write assembly to file
     std::ofstream out(dest_path);
-    out << compiler::code_emission::emitAsmbProgram(loweredProgram);
+    out << compiler::codegen::EmitAsmbVisitor()(asmb);
     out.close();
 
     return fs::path(dest_path);
-*/
 }
 
 

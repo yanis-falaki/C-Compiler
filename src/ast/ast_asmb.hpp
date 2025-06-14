@@ -24,6 +24,14 @@ constexpr std::string_view unary_op_to_string(UnaryOperator op) {
     return "Unknown";
 }
 
+constexpr std::string_view unary_op_to_instruction(UnaryOperator op) {
+    switch (op) {
+        case UnaryOperator::Complement: return "notl";
+        case UnaryOperator::Negate:     return "negl";
+    }
+    return "Unknown";
+}
+
 // ------------------------------> RegisterName <------------------------------
 
 enum class RegisterName {
@@ -35,6 +43,14 @@ constexpr std::string_view reg_name_to_string(RegisterName op) {
     switch (op) {
         case RegisterName::AX:           return "AX";
         case RegisterName::R10:          return "R10";
+    }
+    return "Unknown";
+}
+
+constexpr std::string_view reg_name_to_operand(RegisterName op) {
+    switch (op) {
+        case RegisterName::AX:           return "\%eax";
+        case RegisterName::R10:          return "%r10d";
     }
     return "Unknown";
 }
@@ -82,7 +98,7 @@ struct Unary {
 };
 
 struct AllocateStack {
-    int32_t mValue;
+    uint32_t mValue;
     AllocateStack(int32_t value) : mValue(value) {}
 };
 

@@ -13,7 +13,7 @@ namespace compiler::codegen {
 struct ReplacePseudoRegisters {
 
     std::unordered_map<std::string, uint32_t> mMap;
-    uint32_t mLastStackLocation = 0;
+    int32_t mLastStackLocation = 0;
     
     // Operand visitors
     ast::asmb::Operand operator()(const ast::asmb::Imm& imm) const {
@@ -57,13 +57,13 @@ struct ReplacePseudoRegisters {
         for (auto& instruction : func.mInstructions) {
             std::visit(*this, instruction);
         }
-        return mLastStackLocation;
+        return std::abs(mLastStackLocation);
     }
 
     // Program visitor
     uint32_t operator()(ast::asmb::Program& program) {
         (*this)(program.mFunction);
-        return mLastStackLocation;
+        return std::abs(mLastStackLocation);
     }
 };
 
@@ -144,7 +144,7 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Reg& reg) const {
-        return std::format("\%{}", ast::asmb::reg_name_to_string(reg.mReg));
+        return std::string(ast::asmb::reg_name_to_operand(reg.mReg));
     }
 
     std::string operator() (const ast::asmb::Pseudo& pseudo) const {
@@ -153,8 +153,7 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Stack& stack) const {
-        // Not yet implemented
-        throw std::runtime_error("Stack operand not implemented in EmitAsmbVisitor");
+        return std::format("{}(%rbp)", stack.mLocation);
     }
 
     // Instruction visitors
@@ -163,17 +162,15 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Ret ret) const {
-        return "ret";
+        return "movq %rbp, %rsp\n\tpopq %rbp\n\tret";
     }
 
     std::string operator() (const ast::asmb::Unary unary) const {
-        // Not yet implemented
-        throw std::runtime_error("unary instruction not implemented in EmitAsmbVisitor");
+        return std::format("{} {}", ast::asmb::unary_op_to_instruction(unary.mOp), std::visit(*this, unary.mOperand));
     }
 
     std::string operator() (const ast::asmb::AllocateStack allocateStack) const {
-        // Not yet implemented
-        throw std::runtime_error("allocateStack instruction not implemented in EmitAsmbVisitor");
+        return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
 
     // Function visitor
@@ -181,6 +178,7 @@ struct EmitAsmbVisitor {
         std::stringstream ss;
         ss << ".globl " << function.mIdentifier.value() << std::endl;
         ss << function.mIdentifier.value() << ":\n";
+        ss << "\tpushq %rbp\n" << "\tmovq %rsp, %rbp\n";
         
         for (auto& instruction : function.mInstructions) {
             ss << "\t" << std::visit(*this, instruction) << "\n";
