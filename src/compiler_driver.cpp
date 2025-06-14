@@ -129,18 +129,18 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     auto program = compiler::parser::parseProgram(lexList);
     if (args.count("parse")) {
-        compiler::ast::c::printAST(program);
+        compiler::ast::c::PrintVisitor()(program);
         return fs::path();
     }
 
     auto tackyProgram = compiler::codegen::convertCProgramToTacky(program);
     if (args.count("tacky")) {
-        compiler::ast::tacky::printAST(tackyProgram);
+        compiler::ast::tacky::PrintVisitor()(tackyProgram);
         return fs::path();
     }
 
-    auto asmbPass0 = compiler::codegen::TackyToAsmb()(tackyProgram);
-    compiler::ast::asmb::printAST(asmbPass0);
+    compiler::ast::asmb::Program asmbPass0 = compiler::codegen::TackyToAsmb()(tackyProgram);
+    compiler::ast::asmb::PrintVisitor()(asmbPass0);
 
     return fs::path();
 /*

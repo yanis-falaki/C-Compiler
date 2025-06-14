@@ -49,20 +49,22 @@ struct PrintVisitor {
             std::visit(PrintVisitor(depth + 2), *ifStmt.mElse.value());
         }
     }
-};
 
-inline void printAST(const Function& func, uint32_t depth = 0) {
-    std::string indent = std::string(depth * 2, ' ');
-    if (func.mIdentifier.has_value()) {
-        std::cout << indent << "Function " << func.mIdentifier.value() << ":" << std::endl;
-    } else {
-        std::cout << indent << "Function:" << std::endl;
+    // Function visitor
+    void operator()(const Function& func) {
+        std::string indent = std::string(depth * 2, ' ');
+        if (func.mIdentifier.has_value()) {
+            std::cout << indent << "Function " << func.mIdentifier.value() << ":" << std::endl;
+        } else {
+            std::cout << indent << "Function:" << std::endl;
+        }
+        std::visit(PrintVisitor(depth+1), func.mBody);
     }
-    std::visit(PrintVisitor(depth+1), func.mBody);
-}
 
-inline void printAST(const Program& program, uint32_t depth = 0) {
-    printAST(program.mFunction, depth);
-}
+    // Program visitor
+    void operator()(const Program& program) {
+        (*this)(program.mFunction);
+    }
+};
 
 }

@@ -61,31 +61,24 @@ struct PrintVisitor {
     void operator()(const AllocateStack& allocateStack) const {
         std::cout << indent() << "Allocate Stack: " << allocateStack.mValue << std::endl;
     }
+
+    // Function visitor
+    void operator()(const Function& func) {
+        if (func.mIdentifier.has_value()) {
+            std::cout << indent() << "Function " << func.mIdentifier.value() << ":" << std::endl;
+        } else {
+            std::cout << indent() << "Function:" << std::endl;
+        }
+        
+        for (const auto& instruction : func.mInstructions) {
+            std::visit(PrintVisitor{depth + 1}, instruction);
+        }
+    }
+
+    // Program visitor
+    void operator()(const Program& program) {
+        (*this)(program.mFunction);
+    }
 };
-
-inline void printAST(const Operand& operand, uint32_t depth = 0) {
-    std::visit(PrintVisitor(depth), operand);
-}
-
-inline void printAST(const Instruction& instruction, uint32_t depth = 0) {
-    std::visit(PrintVisitor(depth), instruction);
-}
-
-inline void printAST(const Function& func, uint32_t depth = 0) {
-    std::string indent = std::string(depth * 2, ' ');
-    if (func.mIdentifier.has_value()) {
-        std::cout << indent << "Function " << func.mIdentifier.value() << ":" << std::endl;
-    } else {
-        std::cout << indent << "Function:" << std::endl;
-    }
-    
-    for (const auto& instruction : func.mInstructions) {
-        printAST(instruction, depth + 1);
-    }
-}
-
-inline void printAST(const Program& program, uint32_t depth = 0) {
-    printAST(program.mFunction, depth);
-}
 
 }

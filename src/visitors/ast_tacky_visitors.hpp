@@ -48,18 +48,20 @@ struct PrintVisitor {
         std::cout << indent() << "  " << "Destination:\n";
         std::visit(PrintVisitor(depth+2), unary.mDst);
     }
-};
 
-inline void printAST(const Function& func, uint32_t depth = 0) {
-    std::string indent = std::string(depth * 2, ' ');
-    std::cout << indent << "Function " << func.mIdentifier << ":\n";
-    for (const auto& instruction : func.mBody) {
-        std::visit(PrintVisitor{depth+1}, instruction);
+    // Function visitor
+    void operator()(const Function& func) {
+        std::string indent = std::string(depth * 2, ' ');
+        std::cout << indent << "Function " << func.mIdentifier << ":\n";
+        for (const auto& instruction : func.mBody) {
+            std::visit(PrintVisitor{depth+1}, instruction);
+        }
     }
-}
 
-inline void printAST(const Program& program, uint32_t depth = 0) {
-    printAST(program.mFunction, depth);
-}
+    // Program visitor
+    void operator()(const Program& program) {
+        (*this)(program.mFunction);
+    }
+};
 
 }
