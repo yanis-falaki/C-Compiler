@@ -14,7 +14,7 @@
 #include "visitors/ast_tacky_visitors.hpp"
 #include "visitors/c_to_tacky.hpp"
 #include "visitors/tacky_to_asmb.hpp"
-#include "visitors/code_emission_visitors.hpp"
+#include "visitors/asmb_to_file.hpp"
 
 namespace fs = std::filesystem;
 
@@ -132,7 +132,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         compiler::ast::c::PrintVisitor()(program);
         return fs::path();
     }
-
+    // (0th pass)
     auto tackyProgram = compiler::codegen::convertCProgramToTacky(program);
     if (args.count("tacky")) {
         compiler::ast::tacky::PrintVisitor()(tackyProgram);

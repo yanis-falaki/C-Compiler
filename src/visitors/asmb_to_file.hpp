@@ -7,6 +7,8 @@
 
 namespace compiler::code_emission {
 
+// ------------------------------> Replace PseudoRegisters (1st Pass) <------------------------------
+
 // ------------------------------> Code Emission <------------------------------
 // A lot of copying, but I'm okay with it for now as it makes it more readable.
 
@@ -29,27 +31,23 @@ struct EmitAsmbVisitor {
         return "ret";
     }
 
-    // Fallback catch-all template for any unhandled types
-    template<typename T>
-    std::string operator()(const T&) const {
-        throw std::runtime_error("Unhandled variant type in EmitAsmbVisitor");
+    // Function visitor
+    std::string operator()(const ast::asmb::Function& function) {
+        std::stringstream ss;
+        ss << ".globl " << function.mIdentifier.value() << std::endl;
+        ss << function.mIdentifier.value() << ":\n";
+        
+        for (auto& instruction : function.mInstructions) {
+            ss << "\t" << std::visit(*this, instruction) << "\n";
+        }
+    
+        return ss.str();
+    }
+
+    // Program
+    std::string operator()(const ast::asmb::Program& program) {
+        return std::format("{}\n.section .note.GNU-stack,\"\",@progbits\n", (*this)(program.mFunction));
     }
 };
-
-inline std::string emitAsmbFunction(const ast::asmb::Function& function) {
-    std::stringstream ss;
-    ss << ".globl " << function.mIdentifier.value() << std::endl;
-    ss << function.mIdentifier.value() << ":\n";
-    
-    for (auto& instruction : function.mInstructions) {
-        ss << "\t" << std::visit(EmitAsmbVisitor{}, instruction) << "\n";
-    }
-
-    return ss.str();
-}
-
-inline std::string emitAsmbProgram(const ast::asmb::Program& program) {
-    return std::format("{}\n.section .note.GNU-stack,\"\",@progbits\n", emitAsmbFunction(program.mFunction));
-}
 
 }
