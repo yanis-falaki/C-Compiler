@@ -23,12 +23,16 @@ enum class LexType {
     Close_Parenthesis,
     Open_Brace,
     Close_Brace,
-    Semicolon
+    Semicolon,
+    Plus,
+    Asterisk,
+    Forward_Slash,
+    Percent
 };
 
-// ------------------------------> lexTypeToStr <------------------------------
+// ------------------------------> lex_type_to_str <------------------------------
 
-inline constexpr std::string_view lexTypeToStr(LexType type) {
+inline constexpr std::string_view lex_type_to_str(LexType type) {
     switch (type) {
         case LexType::Undefined:          return "Undefined";
         case LexType::Identifier:         return "Identifier";
@@ -44,9 +48,30 @@ inline constexpr std::string_view lexTypeToStr(LexType type) {
         case LexType::Open_Brace:         return "{";
         case LexType::Close_Brace:        return "}";
         case LexType::Semicolon:          return ";";
+        case LexType::Plus:               return "+";
+        case LexType::Asterisk:           return "*";
+        case LexType::Forward_Slash:      return "/";
+        case LexType::Percent:            return "%";
         default:                          return "<invalid>";
     }
 }
+
+// ------------------------------> Type Enum <------------------------------
+
+static constexpr std::array<LexType, 12> LEX_TYPES_TO_CHECK = {
+    LexType::Decrement,          // Check multi-char operators first
+    LexType::BitwiseComplement,
+    LexType::Negation,
+    LexType::Open_Parenthesis,
+    LexType::Close_Parenthesis,
+    LexType::Open_Brace,
+    LexType::Close_Brace,
+    LexType::Semicolon,
+    LexType::Plus,
+    LexType::Asterisk,
+    LexType::Forward_Slash,
+    LexType::Percent
+};
 
 // ------------------------------> LexItem and KEYWORD_MAP <------------------------------
 
@@ -99,7 +124,7 @@ public:
     void print(std::ostream& os = std::cout) const {
         size_t i = 0;
         for (const auto& item : mLexVector) {
-            os << i << ": " << lexTypeToStr(item.mLexType);
+            os << i << ": " << lex_type_to_str(item.mLexType);
             if (item.mLexType == LexType::Identifier)
                 std::cout << ": " << item.mSV << std::endl;
             else

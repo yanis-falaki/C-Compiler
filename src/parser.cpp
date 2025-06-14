@@ -20,7 +20,7 @@ namespace compiler::parser {
 const lexer::LexItem& expectAndAdvance(lexer::LexType expectedLexType, lexer::LexList& lexList) {
     const lexer::LexItem& actual = lexList.consume();
     if (actual.mLexType != expectedLexType) {
-        auto errorString = std::format("Expected: {}, got {}", lexTypeToStr(expectedLexType), actual.mSV);
+        auto errorString = std::format("Expected: {}, got {}", lex_type_to_str(expectedLexType), actual.mSV);
         throw std::runtime_error(errorString);
     }
     return actual;
@@ -29,7 +29,7 @@ const lexer::LexItem& expectAndAdvance(lexer::LexType expectedLexType, lexer::Le
 const lexer::LexItem& expectNoAdvance(lexer::LexType expectedLexType, lexer::LexList& lexList) {
     const lexer::LexItem& actual = lexList.current();
     if (actual.mLexType != expectedLexType) {
-        auto errorString = std::format("Expected: {}, got {}", lexTypeToStr(expectedLexType), actual.mSV);
+        auto errorString = std::format("Expected: {}, got {}", lex_type_to_str(expectedLexType), actual.mSV);
         throw std::runtime_error(errorString);
     }
     return actual;

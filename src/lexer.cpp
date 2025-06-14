@@ -2,8 +2,8 @@
 #include <stdexcept>
 #include <vector>
 #include <cxxopts.hpp>
-#include "lexer.hpp"
-#include "utils.h"
+#include "./lexer.hpp"
+#include "./utils.h"
 
 namespace compiler::lexer {
 
@@ -32,15 +32,17 @@ static std::pair<LexType, std::string_view> checkForType(std::string_view sv) {
             return std::make_pair(LexType::Constant, m);
         }
     }
-    else if(sv[0] == '(') return std::make_pair(LexType::Open_Parenthesis, "(");
-    else if(sv[0] == ')') return std::make_pair(LexType::Close_Parenthesis, ")");
-    else if(sv[0] == '{') return std::make_pair(LexType::Open_Brace, "{");
-    else if(sv[0] == '}') return std::make_pair(LexType::Close_Brace, "}");
-    else if(sv[0] == ';') return std::make_pair(LexType::Semicolon, ";");
-    else if (sv[0] == '-' && sv[1] =='-') return std::make_pair(LexType::Decrement, "--");
-    else if (sv[0] == '-') return std::make_pair(LexType::Negation, "-");
-    else if (sv[0] == '~') return std::make_pair(LexType::BitwiseComplement, "~");
-    else return std::make_pair(LexType::Undefined, m);
+
+    // Check all other token types by iterating through them
+    
+    for (LexType type : LEX_TYPES_TO_CHECK) {
+        std::string_view tokenStr = lex_type_to_str(type);
+        if (sv.starts_with(tokenStr)) {
+            return std::make_pair(type, tokenStr);
+        }
+    }
+    
+    return std::make_pair(LexType::Undefined, lex_type_to_str(LexType::Undefined));
 }
 
 // ------------------------------> lexer <------------------------------
