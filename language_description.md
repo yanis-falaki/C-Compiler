@@ -28,9 +28,13 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 <if> ::= "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 
-<exp> ::= <constant> | <unop> <exp> | "(" <exp> ")"
+<exp> ::= <factor> | <exp> <binop> <exp>
+
+<factor> ::= <int> | <unop> <factor> | "(" <exp> ")"
 
 <unop> ::= "-" | "~"
+
+<binop> ::= "-" | "+" | "*" | "/" | "%"
 
 <identifier> ::= ? An identifier token ?
 
