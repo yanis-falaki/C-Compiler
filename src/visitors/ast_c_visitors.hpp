@@ -31,6 +31,14 @@ struct PrintVisitor {
         std::cout << indent() << "Unary: " << unary_op_to_string(unary.mOp) << std::endl;
         std::visit(PrintVisitor(depth+1), *unary.mExpr);
     }
+
+    void operator()(const Binary& binary) const {
+        std::cout << indent() << "Binary: " << binary_op_to_string(binary.mOp) << std::endl;
+        std::cout << indent() + "  " << "Left Expression:\n";
+        std::visit(PrintVisitor(depth+2), *binary.mLeft);
+        std::cout << indent() + "  " << "Right Expression:\n";
+        std::visit(PrintVisitor(depth+2), *binary.mRight);
+    }
     
     // Statement visitors
     void operator()(const Return& ret) const {

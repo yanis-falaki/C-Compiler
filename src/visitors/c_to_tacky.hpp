@@ -49,6 +49,10 @@ struct ConvertFromCToTacky {
         return dst;
     }
 
+    ast::tacky::Val operator() (const ast::c::Binary& binary) {
+        throw std::runtime_error("Binary ops not yet implemented for c -> tacky conversion");
+    }
+
     // Statement visitors
     void operator() (const ast::c::Return& returnNode) {
         ast::tacky::Val src = std::visit(*this, returnNode.mExpr);

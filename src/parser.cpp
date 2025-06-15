@@ -15,6 +15,31 @@ namespace compiler::parser {
 
 // ------------------------------> Language Construct Parsing <------------------------------
 
+// ------------------------------> Unary LexType to C AST Unary Op <------------------------------
+
+inline constexpr ast::c::UnaryOperator lextype_to_unary_op(lexer::LexType unop) {
+    switch (unop) {
+        case lexer::LexType::Negation:               return ast::c::UnaryOperator::Negate;
+        case lexer::LexType::BitwiseComplement:      return ast::c::UnaryOperator::Complement;
+        default:
+            throw std::runtime_error("lextype_to_unary_op received an invalid lexer::LexType");
+            break;
+    }
+}
+
+inline constexpr ast::c::BinaryOperator lextype_to_binary_op(lexer::LexType unop) {
+    switch (unop) {
+        case lexer::LexType::Negation:               return ast::c::BinaryOperator::Subtract;
+        case lexer::LexType::Plus:                   return ast::c::BinaryOperator::Add;
+        case lexer::LexType::Asterisk:               return ast::c::BinaryOperator::Multiply;
+        case lexer::LexType::Forward_Slash:          return ast::c::BinaryOperator::Divide;
+        case lexer::LexType::Percent:                return ast::c::BinaryOperator::Modulo;
+        default:
+            throw std::runtime_error("lextype_to_binary_op received an invalid lexer::LexType");
+            break;
+    }
+}
+
 // ------------------------------> expect <------------------------------
 
 const lexer::LexItem& expectAndAdvance(lexer::LexType expectedLexType, lexer::LexList& lexList) {
@@ -42,53 +67,66 @@ static ast::c::Constant parseConstant(lexer::LexList& lexList) {
     return ast::c::Constant(std::stoi(std::string(lexConstant.mSV)));
 }
 
-// ------------------------------> parseUnaryOp <------------------------------
-
 // forward declaration
-static ast::c::Expression parseExpession(lexer::LexList& lexList);
+static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence=0);
 
-static ast::c::Unary parseUnaryOp(lexer::LexList& lexList) {
-    const lexer::LexItem& lexUnary = lexList.current();
-    lexList.advance();
-    auto expression = std::make_unique<ast::c::Expression>(parseExpession(lexList));
+// ------------------------------> parseFactor <------------------------------
 
-    if (lexUnary.mLexType == lexer::LexType::BitwiseComplement)
-        return ast::c::Unary(ast::c::UnaryOperator::Complement, std::move(expression));
-    else if (lexUnary.mLexType == lexer::LexType::Negation)
-        return ast::c::Unary(ast::c::UnaryOperator::Negate, std::move(expression));
-    
-    std::string errorString = std::format("parseUnaryOp was called without an implementation for the UnaryOp");
+static ast::c::Expression parseFactor(lexer::LexList& lexList) {
+    const lexer::LexItem& currentToken = lexList.current();
+
+    if (currentToken.mLexType == lexer::LexType::Constant)
+        return parseConstant(lexList);
+
+    else if (currentToken.mLexType == lexer::LexType::BitwiseComplement ||
+            currentToken.mLexType == lexer::LexType::Negation ||
+            currentToken.mLexType == lexer::LexType::Decrement) {
+        lexList.advance();
+        auto factor = std::make_unique<ast::c::Expression>(parseFactor(lexList));
+        return ast::c::Unary(lextype_to_unary_op(currentToken.mLexType), std::move(factor));
+    }
+
+    else if (currentToken.mLexType == lexer::LexType::Open_Parenthesis) {
+        lexList.advance();
+        auto innerExpression = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        return innerExpression;
+    }
+
+    std::string errorString = std::format("Malformed factor, got: {}", currentToken.mSV);
     throw std::runtime_error(errorString);
 }
 
 // ------------------------------> parseExpression <------------------------------
 
-static ast::c::Expression parseExpession(lexer::LexList& lexList) {
-    // Only works with constants for now
-    const lexer::LexItem& lexExpression = lexList.current();
-    if (lexExpression.mLexType == lexer::LexType::Open_Parenthesis) {
+static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence) {
+    auto left = parseFactor(lexList);
+    const lexer::LexItem* currentToken = &lexList.current();
+
+    // Check if operator is a binary op and is above minimum precendence level
+    while ((currentToken->mLexType == lexer::LexType::Plus
+        ||  currentToken->mLexType == lexer::LexType::Negation
+        ||  currentToken->mLexType == lexer::LexType::Asterisk
+        ||  currentToken->mLexType == lexer::LexType::Forward_Slash
+        ||  currentToken->mLexType == lexer::LexType::Percent)
+        &&  (ast::c::binary_op_precedence(lextype_to_binary_op(currentToken->mLexType)) >= minPrecedence)) {
+
+        auto op = lextype_to_binary_op(currentToken->mLexType);
         lexList.advance();
-        auto expression = parseExpession(lexList);
-        lexList.advance();
-        return expression;
+        auto right = std::make_unique<ast::c::Expression>(parseExpression(lexList, ast::c::binary_op_precedence(op)+1));
+        left = ast::c::Binary(op, std::make_unique<ast::c::Expression>(std::move(left)), 
+                                  std::move(right));
+        currentToken = &lexList.current();
     }
-    else if (lexExpression.mLexType == lexer::LexType::Constant)
-        return parseConstant(lexList);
-    else if (lexExpression.mLexType == lexer::LexType::BitwiseComplement ||
-             lexExpression.mLexType == lexer::LexType::Negation ||
-             lexExpression.mLexType == lexer::LexType::Decrement)
-        return parseUnaryOp(lexList);
 
-
-    std::string errorString = std::format("Expected an expression, instead got: {}", lexExpression.mSV);
-    throw std::runtime_error(errorString);
+    return left;
 }
 
 // ------------------------------> parseReturn <------------------------------
 
 static ast::c::Return parseReturn(lexer::LexList& lexList) {
     expectAndAdvance(lexer::LexType::Return, lexList);
-    auto returnObject = ast::c::Return(parseExpession(lexList));
+    auto returnObject = ast::c::Return(parseExpression(lexList));
     expectAndAdvance(lexer::LexType::Semicolon, lexList);
     return returnObject;
 }
