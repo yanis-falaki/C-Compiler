@@ -30,6 +30,19 @@ inline constexpr ast::tacky::UnaryOperator c_to_tacky_unop(ast::c::UnaryOperator
     }
 }
 
+// ------------------------------> Map between TACKY unops and C binops <------------------------------
+
+inline constexpr ast::tacky::BinaryOperator c_to_tacky_binops(ast::c::BinaryOperator unop) {
+    switch (unop) {
+        case ast::c::BinaryOperator::Add:            return ast::tacky::BinaryOperator::Add;
+        case ast::c::BinaryOperator::Subtract:       return ast::tacky::BinaryOperator::Subtract;
+        case ast::c::BinaryOperator::Multiply:       return ast::tacky::BinaryOperator::Multiply;
+        case ast::c::BinaryOperator::Divide:         return ast::tacky::BinaryOperator::Divide;
+        case ast::c::BinaryOperator::Modulo:         return ast::tacky::BinaryOperator::Modulo;
+    }
+    throw std::runtime_error("c_to_tacky_binops received an unknown ast::c::UnaryOperator");
+}
+
 // ------------------------------> Conversion from C AST to TACKY AST <------------------------------
 
 struct ConvertFromCToTacky {
@@ -50,7 +63,13 @@ struct ConvertFromCToTacky {
     }
 
     ast::tacky::Val operator() (const ast::c::Binary& binary) {
-        throw std::runtime_error("Binary ops not yet implemented for c -> tacky conversion");
+        ast::tacky::Val src1 = std::visit(*this, *binary.mLeft);
+        ast::tacky::Val src2 = std::visit(*this, *binary.mRight);
+        std::string dstName = makeTemporary();
+        ast::tacky::Var dst(dstName);
+        auto tacky_op = c_to_tacky_binops(binary.mOp);
+        instructions.emplace_back(ast::tacky::Binary(tacky_op, src1, src2, dst));
+        return dst;
     }
 
     // Statement visitors

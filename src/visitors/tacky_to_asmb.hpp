@@ -52,6 +52,10 @@ struct TackyToAsmb {
         mInstructions.emplace_back(ast::asmb::Unary(unop, dst));
     }
 
+    void operator()(const ast::tacky::Binary& binary) {
+        throw std::runtime_error("Binary ops not yet implemented for TackyToAsmb");
+    }
+
     // Function visitor
     ast::asmb::Function operator()(const ast::tacky::Function &func) {
         for (auto& instruction : func.mBody) {

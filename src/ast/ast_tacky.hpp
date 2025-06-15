@@ -18,8 +18,30 @@ constexpr std::string_view unary_op_to_string(UnaryOperator op) {
         case UnaryOperator::Complement: return "Complement";
         case UnaryOperator::Negate:     return "Negate";
     }
-    return "Unknown"; // Optional, unreachable with exhaustive handling
+    throw std::invalid_argument("Unhandled UnaryOperator in unary_op_to_string");
 }
+
+// ------------------------------> Binary Operator <------------------------------
+
+enum class BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo
+};
+
+inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
+    switch (op) {
+        case BinaryOperator::Add:       return "Add";
+        case BinaryOperator::Subtract:  return "Subtract";
+        case BinaryOperator::Multiply:  return "Multiply";
+        case BinaryOperator::Divide:    return "Divide";
+        case BinaryOperator::Modulo:    return "Modulo";
+    }
+    throw std::invalid_argument("Unhandled BinaryOperator in ast::tacky::binary_op_to_string");
+}
+
 
 // ------------------------------> Val <------------------------------
 
@@ -49,7 +71,19 @@ struct Unary {
     Unary(UnaryOperator op, Val src, Val dst) : mOp(op), mSrc(std::move(src)), mDst(std::move(dst)) {}
 };
 
-using Instruction = std::variant<Return, Unary>;
+struct Binary {
+    BinaryOperator mOp;
+    Val mSrc1;
+    Val mSrc2;
+    Val mDst;
+    Binary(BinaryOperator op, Val src1, Val src2, Val dst)
+        :   mOp(op),
+            mSrc1(std::move(src1)),
+            mSrc2(std::move(src2)),
+            mDst(std::move(dst)) {}
+};
+
+using Instruction = std::variant<Return, Unary, Binary>;
 
 // ------------------------------> Function Definition <------------------------------
 

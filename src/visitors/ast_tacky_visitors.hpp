@@ -49,6 +49,16 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+2), unary.mDst);
     }
 
+    void operator()(const Binary& binary) const {
+        std::cout << indent() << "Binary: " << binary_op_to_string(binary.mOp) << std::endl;
+        std::cout << indent() << "  " << "Source 1:\n";
+        std::visit(PrintVisitor(depth+2), binary.mSrc1);
+        std::cout << indent() << "  " << "Source 2:\n";
+        std::visit(PrintVisitor(depth+2), binary.mSrc2);
+        std::cout << indent() << "  " << "Destination:\n";
+        std::visit(PrintVisitor(depth+2), binary.mDst); 
+    }
+
     // Function visitor
     void operator()(const Function& func) {
         std::string indent = std::string(depth * 2, ' ');
