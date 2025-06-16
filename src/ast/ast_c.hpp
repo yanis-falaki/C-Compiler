@@ -58,16 +58,16 @@ inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
 
 inline constexpr uint32_t binary_op_precedence(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:           return 10;
-        case BinaryOperator::Subtract:      return 10;
-        case BinaryOperator::Multiply:      return 20;
-        case BinaryOperator::Divide:        return 20;
-        case BinaryOperator::Modulo:        return 20;
-        case BinaryOperator::Left_Shift:    return 30;
-        case BinaryOperator::Right_Shift:   return 30;
-        case BinaryOperator::Bitwise_AND:   return 30;
-        case BinaryOperator::Bitwise_OR:    return 30;
-        case BinaryOperator::Bitwise_XOR:   return 30;
+        case BinaryOperator::Add:           return 100;
+        case BinaryOperator::Subtract:      return 100;
+        case BinaryOperator::Multiply:      return 110;
+        case BinaryOperator::Divide:        return 110;
+        case BinaryOperator::Modulo:        return 110;
+        case BinaryOperator::Left_Shift:    return 90;
+        case BinaryOperator::Right_Shift:   return 90;
+        case BinaryOperator::Bitwise_AND:   return 80;
+        case BinaryOperator::Bitwise_OR:    return 60;
+        case BinaryOperator::Bitwise_XOR:   return 70;
     }
     throw std::invalid_argument("Unhandled BinaryOperator in binary_op_precedence");
 }

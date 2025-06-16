@@ -37,23 +37,38 @@ constexpr std::string_view unary_op_to_instruction(UnaryOperator op) {
 enum class BinaryOperator {
     Add,
     Subtract,
-    Multiply
+    Multiply,
+    Left_Shift,
+    Right_Shift,
+    Bitwise_AND,
+    Bitwise_OR,
+    Bitwise_XOR
 };
 
 constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return "Add";
-        case BinaryOperator::Subtract:  return "Subtract";
-        case BinaryOperator::Multiply:  return "Multiply";
+        case BinaryOperator::Add:           return "Add";
+        case BinaryOperator::Subtract:      return "Subtract";
+        case BinaryOperator::Multiply:      return "Multiply";
+        case BinaryOperator::Left_Shift:    return "Left Shift";
+        case BinaryOperator::Right_Shift:   return "Right Shift";
+        case BinaryOperator::Bitwise_AND:   return "Bitwise AND";
+        case BinaryOperator::Bitwise_OR:    return "Bitwise OR";
+        case BinaryOperator::Bitwise_XOR:   return "Bitwise XOR";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in ast::asmb::binary_op_to_string");
 }
 
 constexpr std::string_view binary_op_to_instruction(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return "addl";
-        case BinaryOperator::Subtract:  return "subl";
-        case BinaryOperator::Multiply:  return "imull";
+        case BinaryOperator::Add:           return "addl";
+        case BinaryOperator::Subtract:      return "subl";
+        case BinaryOperator::Multiply:      return "imull";
+        case BinaryOperator::Left_Shift:    return "sall";
+        case BinaryOperator::Right_Shift:   return "sarl";
+        case BinaryOperator::Bitwise_AND:   return "andl";
+        case BinaryOperator::Bitwise_OR:    return "orl";
+        case BinaryOperator::Bitwise_XOR:   return "xorl";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in ast::asmb::binary_op_to_instruction");
 }
@@ -63,6 +78,7 @@ constexpr std::string_view binary_op_to_instruction(BinaryOperator op) {
 enum class RegisterName {
     AX,
     DX,
+    CX,
     R10,
     R11
 };
@@ -71,6 +87,7 @@ constexpr std::string_view reg_name_to_string(RegisterName op) {
     switch (op) {
         case RegisterName::AX:           return "AX";
         case RegisterName::DX:           return "DX";
+        case RegisterName::CX:           return "CX";
         case RegisterName::R10:          return "R10";
         case RegisterName::R11:          return "R11";
     }
@@ -81,6 +98,7 @@ constexpr std::string_view reg_name_to_operand(RegisterName op) {
     switch (op) {
         case RegisterName::AX:           return "\%eax";
         case RegisterName::DX:           return "\%edx";
+        case RegisterName::CX:           return "\%ecx";
         case RegisterName::R10:          return "%r10d";
         case RegisterName::R11:          return "%r11d";
     }

@@ -134,6 +134,21 @@ struct FixUpAsmbInstructions {
             mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(mov1));
         }
 
+        // Shift operation needs second operand in CX register.
+        else if ((binary.mOp == ast::asmb::BinaryOperator::Left_Shift
+                || binary.mOp == ast::asmb::BinaryOperator::Right_Shift)
+                && (!std::holds_alternative<ast::asmb::Reg>(binary.mOperand1)
+                || std::get<ast::asmb::Reg>(binary.mOperand1).mReg != ast::asmb::RegisterName::CX)
+        ) {
+            // Move count to CX register for calculation
+            auto count = binary.mOperand1;
+            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::CX);
+            ast::asmb::Mov moveCount(count, registerDst);
+
+            binary.mOperand1 = registerDst;
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(moveCount));
+        }
+
         // Binary operation can't have both operands in memory.
         else if (std::holds_alternative<ast::asmb::Stack>(binary.mOperand1)
             && std::holds_alternative<ast::asmb::Stack>(binary.mOperand2)
