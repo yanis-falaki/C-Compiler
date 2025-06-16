@@ -133,7 +133,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
     // Convert C to TACKY
-    auto tackyProgram = compiler::codegen::convertCProgramToTacky(program);
+    auto tackyProgram = compiler::codegen::CToTacky()(program);
     if (args.count("tacky")) {
         compiler::ast::tacky::PrintVisitor()(tackyProgram);
         return fs::path();

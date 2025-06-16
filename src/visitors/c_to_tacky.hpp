@@ -45,8 +45,8 @@ inline constexpr ast::tacky::BinaryOperator c_to_tacky_binops(ast::c::BinaryOper
 
 // ------------------------------> Conversion from C AST to TACKY AST <------------------------------
 
-struct ConvertFromCToTacky {
-    std::vector<ast::tacky::Instruction>& instructions;
+struct CToTacky {
+    std::vector<ast::tacky::Instruction> mInstructions;
 
     // Expression visitors
     ast::tacky::Val operator() (const ast::c::Constant& constant) {
@@ -58,7 +58,7 @@ struct ConvertFromCToTacky {
         std::string dstName = makeTemporary();
         ast::tacky::Var dst(dstName);
         auto tacky_op = c_to_tacky_unop(unary.mOp);
-        instructions.emplace_back(ast::tacky::Unary(tacky_op, src, dst));
+        mInstructions.emplace_back(ast::tacky::Unary(tacky_op, src, dst));
         return dst;
     }
 
@@ -68,34 +68,35 @@ struct ConvertFromCToTacky {
         std::string dstName = makeTemporary();
         ast::tacky::Var dst(dstName);
         auto tacky_op = c_to_tacky_binops(binary.mOp);
-        instructions.emplace_back(ast::tacky::Binary(tacky_op, src1, src2, dst));
+        mInstructions.emplace_back(ast::tacky::Binary(tacky_op, src1, src2, dst));
         return dst;
     }
 
     // Statement visitors
     void operator() (const ast::c::Return& returnNode) {
         ast::tacky::Val src = std::visit(*this, returnNode.mExpr);
-        instructions.emplace_back(ast::tacky::Return(src));
+        mInstructions.emplace_back(ast::tacky::Return(src));
     }
 
     // Not yet implemented
     void operator() (const ast::c::If& ifNode) {
         return;
     }
+
+    // Function visitor
+    ast::tacky::Function operator()(const ast::c::Function& functionNode) {
+        std::visit(*this, functionNode.mBody);
+
+        if (functionNode.mIdentifier.has_value())
+            return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(mInstructions));
+        else
+            return ast::tacky::Function(makeTemporary(), std::move(mInstructions));
+    }
+
+    // Program visitor
+    ast::tacky::Program operator()(const ast::c::Program& program) {
+        return ast::tacky::Program((*this)(program.mFunction));
+    }
 };
-
-inline ast::tacky::Function convertCFunctionToTacky(const ast::c::Function& functionNode) {
-    std::vector<ast::tacky::Instruction> instructions;
-    std::visit(ConvertFromCToTacky{instructions}, functionNode.mBody);
-
-    if (functionNode.mIdentifier.has_value())
-        return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(instructions));
-    else
-        return ast::tacky::Function(makeTemporary(), std::move(instructions));
-}
-
-inline ast::tacky::Program convertCProgramToTacky(const ast::c::Program& program) {
-    return ast::tacky::Program(convertCFunctionToTacky(program.mFunction));
-}
 
 }
