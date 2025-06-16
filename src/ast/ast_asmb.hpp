@@ -21,7 +21,7 @@ constexpr std::string_view unary_op_to_string(UnaryOperator op) {
         case UnaryOperator::Complement: return "Complement";
         case UnaryOperator::Negate:     return "Negate";
     }
-    return "Unknown";
+    throw std::invalid_argument("Unhandled UnaryOperator in ast::asmb::unary_op_to_string");
 }
 
 constexpr std::string_view unary_op_to_instruction(UnaryOperator op) {
@@ -29,30 +29,62 @@ constexpr std::string_view unary_op_to_instruction(UnaryOperator op) {
         case UnaryOperator::Complement: return "notl";
         case UnaryOperator::Negate:     return "negl";
     }
-    return "Unknown";
+    throw std::invalid_argument("Unhandled UnaryOperator in ast::asmb::unary_op_to_instruction");
+}
+
+// ------------------------------> Binary Operator <------------------------------
+
+enum class BinaryOperator {
+    Add,
+    Subtract,
+    Multiply
+};
+
+constexpr std::string_view binary_op_to_string(BinaryOperator op) {
+    switch (op) {
+        case BinaryOperator::Add:       return "Add";
+        case BinaryOperator::Subtract:  return "Subtract";
+        case BinaryOperator::Multiply:  return "Multiply";
+    }
+    throw std::invalid_argument("Unhandled BinaryOperator in ast::asmb::binary_op_to_string");
+}
+
+constexpr std::string_view binary_op_to_instruction(BinaryOperator op) {
+    switch (op) {
+        case BinaryOperator::Add:       return "Add";
+        case BinaryOperator::Subtract:  return "Sub";
+        case BinaryOperator::Multiply:  return "Mult";
+    }
+    throw std::invalid_argument("Unhandled BinaryOperator in ast::asmb::binary_op_to_instruction");
 }
 
 // ------------------------------> RegisterName <------------------------------
 
 enum class RegisterName {
     AX,
-    R10
+    DX,
+    R10,
+    R11
 };
 
 constexpr std::string_view reg_name_to_string(RegisterName op) {
     switch (op) {
         case RegisterName::AX:           return "AX";
+        case RegisterName::DX:           return "DX";
         case RegisterName::R10:          return "R10";
+        case RegisterName::R11:          return "R11";
     }
-    return "Unknown";
+    throw std::invalid_argument("Unhandled RegisterName in reg_name_to_string");
 }
 
 constexpr std::string_view reg_name_to_operand(RegisterName op) {
     switch (op) {
         case RegisterName::AX:           return "\%eax";
+        case RegisterName::DX:           return "\%edx";
         case RegisterName::R10:          return "%r10d";
+        case RegisterName::R11:          return "%r11d";
     }
-    return "Unknown";
+    throw std::invalid_argument("Unhandled RegisterName in reg_name_to_operand");
 }
 
 // ------------------------------> Operands <------------------------------
@@ -97,12 +129,29 @@ struct Unary {
     Unary(UnaryOperator op, Operand operand) : mOp(op), mOperand(std::move(operand)) {}
 };
 
+struct Binary {
+    BinaryOperator mOp;
+    Operand mOperand1;
+    Operand mOperand2;
+    Binary(BinaryOperator op, Operand operand1, Operand operand2)
+        :    mOp(op), 
+             mOperand1(std::move(operand1)),
+             mOperand2(std::move(operand2)) {}
+};
+
+struct Idiv {
+    Operand mOperand;
+    Idiv(Operand operand) : mOperand(std::move(operand)) {}
+};
+
+struct Cdq {};
+
 struct AllocateStack {
     uint32_t mValue;
     AllocateStack(int32_t value) : mValue(value) {}
 };
 
-using Instruction = std::variant<Ret, Mov, Unary, AllocateStack>;
+using Instruction = std::variant<Ret, Mov, Unary, Binary, Idiv, Cdq, AllocateStack>;
 
 // ------------------------------> Function Definition <------------------------------
 

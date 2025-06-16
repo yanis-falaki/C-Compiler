@@ -22,6 +22,17 @@ inline constexpr ast::asmb::UnaryOperator tacky_to_asmb_unop(ast::tacky::UnaryOp
     }
 }
 
+// ------------------------------> Map between TACKY binops and ASMB unops <------------------------------
+
+inline constexpr ast::asmb::BinaryOperator tacky_to_asmb_binop(ast::tacky::BinaryOperator unop) {
+    switch (unop) {
+        case ast::tacky::BinaryOperator::Add:             return ast::asmb::BinaryOperator::Add;
+        case ast::tacky::BinaryOperator::Subtract:        return ast::asmb::BinaryOperator::Subtract;
+        case ast::tacky::BinaryOperator::Multiply:        return ast::asmb::BinaryOperator::Multiply;
+    }
+    throw std::runtime_error("tacky_to_asmb_binop received an unknown ast::tacky::BinaryOperator");
+}
+
 // ------------------------------> TackyToAsmb (0th pass) <------------------------------
 
 struct TackyToAsmb {
@@ -49,11 +60,31 @@ struct TackyToAsmb {
         ast::asmb::Operand dst = std::visit(*this, unary.mDst);
         ast::asmb::UnaryOperator unop = tacky_to_asmb_unop(unary.mOp);
         mInstructions.emplace_back(ast::asmb::Mov(std::move(src), dst));
-        mInstructions.emplace_back(ast::asmb::Unary(unop, dst));
+        mInstructions.emplace_back(ast::asmb::Unary(unop, std::move(dst)));
     }
 
     void operator()(const ast::tacky::Binary& binary) {
-        throw std::runtime_error("Binary ops not yet implemented for TackyToAsmb");
+        ast::asmb::Operand src1 = std::visit(*this, binary.mSrc1);
+        ast::asmb::Operand src2 = std::visit(*this, binary.mSrc2);
+        ast::asmb::Operand dst = std::visit(*this, binary.mDst);
+
+        if (binary.mOp == ast::tacky::BinaryOperator::Divide) {
+            mInstructions.emplace_back(ast::asmb::Mov(std::move(src1), ast::asmb::Reg(ast::asmb::RegisterName::AX)));
+            mInstructions.emplace_back(ast::asmb::Cdq());
+            mInstructions.emplace_back(ast::asmb::Idiv(std::move(src2)));
+            mInstructions.emplace_back(ast::asmb::Mov(ast::asmb::Reg(ast::asmb::RegisterName::AX), std::move(dst)));
+        }
+        else if (binary.mOp == ast::tacky::BinaryOperator::Modulo) {
+            mInstructions.emplace_back(ast::asmb::Mov(std::move(src1), ast::asmb::Reg(ast::asmb::RegisterName::AX)));
+            mInstructions.emplace_back(ast::asmb::Cdq());
+            mInstructions.emplace_back(ast::asmb::Idiv(std::move(src2)));
+            mInstructions.emplace_back(ast::asmb::Mov(ast::asmb::Reg(ast::asmb::RegisterName::DX), std::move(dst)));
+        }
+        else {
+            ast::asmb::BinaryOperator asmbOp = tacky_to_asmb_binop(binary.mOp);
+            mInstructions.emplace_back(ast::asmb::Mov(std::move(src1), dst));
+            mInstructions.emplace_back(ast::asmb::Binary(asmbOp, std::move(src2), std::move(dst)));
+        }
     }
 
     // Function visitor

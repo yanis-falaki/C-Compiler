@@ -49,6 +49,17 @@ struct ReplacePseudoRegisters {
         unary.mOperand = std::visit(*this, unary.mOperand);
     }
 
+    void operator()(ast::asmb::Binary& binary) {
+        binary.mOperand1 = std::visit(*this, binary.mOperand1);
+        binary.mOperand2 = std::visit(*this, binary.mOperand2);
+    }
+
+    void operator()(ast::asmb::Idiv& idiv) {
+        idiv.mOperand = std::visit(*this, idiv.mOperand);
+    }
+
+    void operator()(const ast::asmb::Cdq& cdq) const {}
+
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
 
@@ -107,6 +118,47 @@ struct FixUpAsmbInstructions {
 
     void operator()(const ast::asmb::Unary& unary) const {
     }
+
+    void operator()(ast::asmb::Binary& binary) {
+        // Multiply operation can't have destination operand in memory
+        if (binary.mOp == ast::asmb::BinaryOperator::Multiply
+            && std::holds_alternative<ast::asmb::Stack>(binary.mOperand2)
+        ) {
+            auto stackDestination = binary.mOperand2;
+            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R11);
+            ast::asmb::Mov mov1(stackDestination, registerDst);
+            ast::asmb::Mov mov2(registerDst, stackDestination);
+
+            binary.mOperand2 = registerDst;
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter + 1, std::move(mov2));
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(mov1));
+        }
+
+        // Binary operation can't have both operands in memory.
+        else if (std::holds_alternative<ast::asmb::Stack>(binary.mOperand1)
+            && std::holds_alternative<ast::asmb::Stack>(binary.mOperand2)
+        ) {
+            // Move operand1 to r10 register
+            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+            ast::asmb::Mov movInstruction(binary.mOperand1, registerDst);
+
+            // Replace operand1 in binop as r10 register
+            binary.mOperand1 = registerDst;
+
+            // Insert move instruction
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(movInstruction));
+        }
+    }
+
+    void operator()(ast::asmb::Idiv& idiv) {
+        if (!std::holds_alternative<ast::asmb::Imm>(idiv.mOperand)) return;
+        // Otherwise idiv is using an immediate value as operand which is not allowed.
+        ast::asmb::Mov preMovInstruction(idiv.mOperand, ast::asmb::Reg(ast::asmb::RegisterName::R10));
+        idiv.mOperand = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+        mInstructions->emplace(mInstructions->begin() + mInstructionCounter, preMovInstruction);
+    }
+
+    void operator()(const ast::asmb::Cdq& cdq) const {}
 
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
@@ -167,6 +219,18 @@ struct EmitAsmbVisitor {
 
     std::string operator() (const ast::asmb::Unary unary) const {
         return std::format("{} {}", ast::asmb::unary_op_to_instruction(unary.mOp), std::visit(*this, unary.mOperand));
+    }
+
+    std::string operator() (const ast::asmb::Binary binary) const {
+        throw std::runtime_error("Binary EmistAsmbVisitor not yet implemented");
+    }
+
+    std::string operator() (const ast::asmb::Idiv idiv) const {
+        throw std::runtime_error("Idiv EmistAsmbVisitor not yet implemented");
+    }
+
+    std::string operator() (const ast::asmb::Cdq cdq) const {
+        throw std::runtime_error("Cdq EmistAsmbVisitor not yet implemented");
     }
 
     std::string operator() (const ast::asmb::AllocateStack allocateStack) const {

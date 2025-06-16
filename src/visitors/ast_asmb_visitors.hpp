@@ -58,6 +58,24 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+2), unary.mOperand);
     }
 
+    void operator()(const Binary& binary) const {
+        std::cout << indent() << "Binary: " << binary_op_to_string(binary.mOp) << std::endl;
+        std::cout << indent() << "  " << "Operand 1:\n";
+        std::visit(PrintVisitor(depth+2), binary.mOperand1);
+        std::cout << indent() << "  " << "Operand 2:\n";
+        std::visit(PrintVisitor(depth+2), binary.mOperand2);
+    }
+
+    void operator()(const Idiv& idiv) const {
+        std::cout << indent() << "Idiv:\n";
+        std::cout << indent() << "  " << "Operand:\n";
+        std::visit(PrintVisitor(depth+2), idiv.mOperand);
+    }
+
+    void operator()(const Cdq&) const {
+        std::cout << indent() << "Cdq" << std::endl;
+    }
+
     void operator()(const AllocateStack& allocateStack) const {
         std::cout << indent() << "Allocate Stack: " << allocateStack.mValue << std::endl;
     }
