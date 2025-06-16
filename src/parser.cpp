@@ -34,6 +34,11 @@ inline constexpr ast::c::BinaryOperator lextype_to_binary_op(lexer::LexType unop
         case lexer::LexType::Asterisk:               return ast::c::BinaryOperator::Multiply;
         case lexer::LexType::Forward_Slash:          return ast::c::BinaryOperator::Divide;
         case lexer::LexType::Percent:                return ast::c::BinaryOperator::Modulo;
+        case lexer::LexType::Left_Shift:             return ast::c::BinaryOperator::Left_Shift;
+        case lexer::LexType::Right_Shift:            return ast::c::BinaryOperator::Right_Shift;
+        case lexer::LexType::Bitwise_AND:            return ast::c::BinaryOperator::Bitwise_AND;
+        case lexer::LexType::Bitwise_OR:             return ast::c::BinaryOperator::Bitwise_OR;
+        case lexer::LexType::Bitwise_XOR:            return ast::c::BinaryOperator::Bitwise_XOR;
         default:
             throw std::runtime_error("lextype_to_binary_op received an invalid lexer::LexType");
             break;
@@ -108,7 +113,12 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
         ||  currentToken->mLexType == lexer::LexType::Negation
         ||  currentToken->mLexType == lexer::LexType::Asterisk
         ||  currentToken->mLexType == lexer::LexType::Forward_Slash
-        ||  currentToken->mLexType == lexer::LexType::Percent)
+        ||  currentToken->mLexType == lexer::LexType::Percent
+        ||  currentToken->mLexType == lexer::LexType::Left_Shift
+        ||  currentToken->mLexType == lexer::LexType::Right_Shift
+        ||  currentToken->mLexType == lexer::LexType::Bitwise_AND
+        ||  currentToken->mLexType == lexer::LexType::Bitwise_OR
+        ||  currentToken->mLexType == lexer::LexType::Bitwise_XOR)
         &&  (ast::c::binary_op_precedence(lextype_to_binary_op(currentToken->mLexType)) >= minPrecedence)) {
 
         auto op = lextype_to_binary_op(currentToken->mLexType);

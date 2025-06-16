@@ -14,6 +14,8 @@ exp = Constant(int)
 unary_operator = Complement | Negate
 
 binary_operator = Add | Subtract | Divide | Remainder
+                | Left_Shift | Right_Shift 
+                | Bitwise_AND | Bitwise_OR | Bitwise_XOR
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)
@@ -35,6 +37,8 @@ binary_operator = Add | Subtract | Divide | Remainder
 <unop> ::= "-" | "~"
 
 <binop> ::= "-" | "+" | "*" | "/" | "%"
+                | "<<" | ">>" 
+                | "&" | "|" | "^"
 
 <identifier> ::= ? An identifier token ?
 
@@ -56,6 +60,8 @@ val = Constant(int) | Var(identifier)
 unary_operator = Complement | Negate
 
 binary_operator = Add | Subtract | Multiply | Divide | Remainder
+                | Left_Shift | Right_Shift
+                | Bitwise_AND | Bitwise_OR | Bitwise_XOR
 ```
 
 # Assembly AST ASDL:

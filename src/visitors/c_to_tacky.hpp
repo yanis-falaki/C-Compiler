@@ -39,6 +39,11 @@ inline constexpr ast::tacky::BinaryOperator c_to_tacky_binops(ast::c::BinaryOper
         case ast::c::BinaryOperator::Multiply:       return ast::tacky::BinaryOperator::Multiply;
         case ast::c::BinaryOperator::Divide:         return ast::tacky::BinaryOperator::Divide;
         case ast::c::BinaryOperator::Modulo:         return ast::tacky::BinaryOperator::Modulo;
+        case ast::c::BinaryOperator::Left_Shift:     return ast::tacky::BinaryOperator::Left_Shift;
+        case ast::c::BinaryOperator::Right_Shift:    return ast::tacky::BinaryOperator::Right_Shift;
+        case ast::c::BinaryOperator::Bitwise_AND:    return ast::tacky::BinaryOperator::Bitwise_AND;
+        case ast::c::BinaryOperator::Bitwise_OR:     return ast::tacky::BinaryOperator::Bitwise_OR;
+        case ast::c::BinaryOperator::Bitwise_XOR:    return ast::tacky::BinaryOperator::Bitwise_XOR;
     }
     throw std::runtime_error("c_to_tacky_binops received an unknown ast::c::UnaryOperator");
 }

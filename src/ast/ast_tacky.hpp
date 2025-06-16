@@ -28,16 +28,26 @@ enum class BinaryOperator {
     Subtract,
     Multiply,
     Divide,
-    Modulo
+    Modulo,
+    Left_Shift,
+    Right_Shift,
+    Bitwise_AND,
+    Bitwise_OR,
+    Bitwise_XOR
 };
 
 inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return "Add";
-        case BinaryOperator::Subtract:  return "Subtract";
-        case BinaryOperator::Multiply:  return "Multiply";
-        case BinaryOperator::Divide:    return "Divide";
-        case BinaryOperator::Modulo:    return "Modulo";
+        case BinaryOperator::Add:           return "Add";
+        case BinaryOperator::Subtract:      return "Subtract";
+        case BinaryOperator::Multiply:      return "Multiply";
+        case BinaryOperator::Divide:        return "Divide";
+        case BinaryOperator::Modulo:        return "Modulo";
+        case BinaryOperator::Left_Shift:    return "Left Shift";
+        case BinaryOperator::Right_Shift:   return "Right Shift";
+        case BinaryOperator::Bitwise_AND:   return "Bitwise AND";
+        case BinaryOperator::Bitwise_OR:    return "Bitwise OR";
+        case BinaryOperator::Bitwise_XOR:   return "Bitwise XOR";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in ast::tacky::binary_op_to_string");
 }

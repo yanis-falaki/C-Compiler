@@ -27,7 +27,12 @@ enum class LexType {
     Plus,
     Asterisk,
     Forward_Slash,
-    Percent
+    Percent,
+    Left_Shift,
+    Right_Shift,
+    Bitwise_AND,
+    Bitwise_OR,
+    Bitwise_XOR
 };
 
 // ------------------------------> lex_type_to_str <------------------------------
@@ -52,14 +57,22 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Asterisk:           return "*";
         case LexType::Forward_Slash:      return "/";
         case LexType::Percent:            return "%";
+        case LexType::Left_Shift:         return "<<";
+        case LexType::Right_Shift:        return ">>";
+        case LexType::Bitwise_AND:        return "&";
+        case LexType::Bitwise_OR:         return "|";
+        case LexType::Bitwise_XOR:        return "^";
         default:                          return "<invalid>";
     }
 }
 
 // ------------------------------> Type Enum <------------------------------
 
-static constexpr std::array<LexType, 12> LEX_TYPES_TO_CHECK = {
-    LexType::Decrement,          // Check multi-char operators first
+// Manually sorted from highest to lowest length
+static constexpr std::array<LexType, 17> LEX_TYPES_TO_CHECK = {
+    LexType::Decrement,
+    LexType::Left_Shift,
+    LexType::Right_Shift,
     LexType::BitwiseComplement,
     LexType::Negation,
     LexType::Open_Parenthesis,
@@ -70,7 +83,10 @@ static constexpr std::array<LexType, 12> LEX_TYPES_TO_CHECK = {
     LexType::Plus,
     LexType::Asterisk,
     LexType::Forward_Slash,
-    LexType::Percent
+    LexType::Percent,
+    LexType::Bitwise_AND,
+    LexType::Bitwise_OR,
+    LexType::Bitwise_XOR
 };
 
 // ------------------------------> LexItem and KEYWORD_MAP <------------------------------

@@ -32,27 +32,42 @@ enum class BinaryOperator {
     Subtract,
     Multiply,
     Divide,
-    Modulo
+    Modulo,
+    Left_Shift,
+    Right_Shift,
+    Bitwise_AND,
+    Bitwise_OR,
+    Bitwise_XOR
 };
 
 inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return "Add";
-        case BinaryOperator::Subtract:  return "Subtract";
-        case BinaryOperator::Multiply:  return "Multiply";
-        case BinaryOperator::Divide:    return "Divide";
-        case BinaryOperator::Modulo:    return "Modulo";
+        case BinaryOperator::Add:           return "Add";
+        case BinaryOperator::Subtract:      return "Subtract";
+        case BinaryOperator::Multiply:      return "Multiply";
+        case BinaryOperator::Divide:        return "Divide";
+        case BinaryOperator::Modulo:        return "Modulo";
+        case BinaryOperator::Left_Shift:    return "Left Shift";
+        case BinaryOperator::Right_Shift:   return "Right Shift";
+        case BinaryOperator::Bitwise_AND:   return "Bitwise AND";
+        case BinaryOperator::Bitwise_OR:    return "Bitwise OR";
+        case BinaryOperator::Bitwise_XOR:   return "Bitwise XOR";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in binary_op_to_string");
 }
 
 inline constexpr uint32_t binary_op_precedence(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return 10;
-        case BinaryOperator::Subtract:  return 10;
-        case BinaryOperator::Multiply:  return 20;
-        case BinaryOperator::Divide:    return 20;
-        case BinaryOperator::Modulo:    return 20;
+        case BinaryOperator::Add:           return 10;
+        case BinaryOperator::Subtract:      return 10;
+        case BinaryOperator::Multiply:      return 20;
+        case BinaryOperator::Divide:        return 20;
+        case BinaryOperator::Modulo:        return 20;
+        case BinaryOperator::Left_Shift:    return 30;
+        case BinaryOperator::Right_Shift:   return 30;
+        case BinaryOperator::Bitwise_AND:   return 30;
+        case BinaryOperator::Bitwise_OR:    return 30;
+        case BinaryOperator::Bitwise_XOR:   return 30;
     }
     throw std::invalid_argument("Unhandled BinaryOperator in binary_op_precedence");
 }
