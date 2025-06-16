@@ -222,15 +222,18 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Binary binary) const {
-        throw std::runtime_error("Binary EmistAsmbVisitor not yet implemented");
+        return std::format("{} {}, {}",
+                            ast::asmb::binary_op_to_instruction(binary.mOp),
+                            std::visit(*this, binary.mOperand1),
+                            std::visit(*this, binary.mOperand2));
     }
 
     std::string operator() (const ast::asmb::Idiv idiv) const {
-        throw std::runtime_error("Idiv EmistAsmbVisitor not yet implemented");
+        return std::format("idivl {}", std::visit(*this, idiv.mOperand));
     }
 
     std::string operator() (const ast::asmb::Cdq cdq) const {
-        throw std::runtime_error("Cdq EmistAsmbVisitor not yet implemented");
+        return "Cdq";
     }
 
     std::string operator() (const ast::asmb::AllocateStack allocateStack) const {

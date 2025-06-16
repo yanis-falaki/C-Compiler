@@ -51,9 +51,9 @@ constexpr std::string_view binary_op_to_string(BinaryOperator op) {
 
 constexpr std::string_view binary_op_to_instruction(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:       return "Add";
-        case BinaryOperator::Subtract:  return "Sub";
-        case BinaryOperator::Multiply:  return "Mult";
+        case BinaryOperator::Add:       return "addl";
+        case BinaryOperator::Subtract:  return "subl";
+        case BinaryOperator::Multiply:  return "imull";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in ast::asmb::binary_op_to_instruction");
 }
