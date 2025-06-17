@@ -21,10 +21,9 @@ inline constexpr ast::c::UnaryOperator lextype_to_unary_op(lexer::LexType unop) 
     switch (unop) {
         case lexer::LexType::Negation:               return ast::c::UnaryOperator::Negate;
         case lexer::LexType::BitwiseComplement:      return ast::c::UnaryOperator::Complement;
-        default:
-            throw std::runtime_error("lextype_to_unary_op received an invalid lexer::LexType");
-            break;
+        case lexer::LexType::Logical_NOT:            return ast::c::UnaryOperator::Logical_NOT;
     }
+    throw std::runtime_error("lextype_to_unary_op received an invalid lexer::LexType");
 }
 
 inline constexpr ast::c::BinaryOperator lextype_to_binary_op(lexer::LexType unop) {
@@ -39,10 +38,16 @@ inline constexpr ast::c::BinaryOperator lextype_to_binary_op(lexer::LexType unop
         case lexer::LexType::Bitwise_AND:            return ast::c::BinaryOperator::Bitwise_AND;
         case lexer::LexType::Bitwise_OR:             return ast::c::BinaryOperator::Bitwise_OR;
         case lexer::LexType::Bitwise_XOR:            return ast::c::BinaryOperator::Bitwise_XOR;
-        default:
-            throw std::runtime_error("lextype_to_binary_op received an invalid lexer::LexType");
-            break;
+        case lexer::LexType::Logical_AND:            return ast::c::BinaryOperator::Logical_AND;
+        case lexer::LexType::Logical_OR:             return ast::c::BinaryOperator::Logical_OR;
+        case lexer::LexType::Is_Equal:               return ast::c::BinaryOperator::Is_Equal;
+        case lexer::LexType::Not_Equal:              return ast::c::BinaryOperator::Not_Equal;
+        case lexer::LexType::Less_Than:              return ast::c::BinaryOperator::Less_Than;
+        case lexer::LexType::Greater_Than:           return ast::c::BinaryOperator::Greater_Than;
+        case lexer::LexType::Less_Or_Equal:          return ast::c::BinaryOperator::Less_Or_Equal;
+        case lexer::LexType::Greater_Or_Equal:       return ast::c::BinaryOperator::Greater_Or_Equal;
     }
+    throw std::runtime_error("lextype_to_binary_op received an invalid lexer::LexType");
 }
 
 // ------------------------------> expect <------------------------------
@@ -83,9 +88,7 @@ static ast::c::Expression parseFactor(lexer::LexList& lexList) {
     if (currentToken.mLexType == lexer::LexType::Constant)
         return parseConstant(lexList);
 
-    else if (currentToken.mLexType == lexer::LexType::BitwiseComplement ||
-            currentToken.mLexType == lexer::LexType::Negation ||
-            currentToken.mLexType == lexer::LexType::Decrement) {
+    else if (lexer::is_lextype_unary_op(currentToken.mLexType)) {
         lexList.advance();
         auto factor = std::make_unique<ast::c::Expression>(parseFactor(lexList));
         return ast::c::Unary(lextype_to_unary_op(currentToken.mLexType), std::move(factor));
@@ -109,17 +112,8 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
     const lexer::LexItem* currentToken = &lexList.current();
 
     // Check if operator is a binary op and is above minimum precendence level
-    while ((currentToken->mLexType == lexer::LexType::Plus
-        ||  currentToken->mLexType == lexer::LexType::Negation
-        ||  currentToken->mLexType == lexer::LexType::Asterisk
-        ||  currentToken->mLexType == lexer::LexType::Forward_Slash
-        ||  currentToken->mLexType == lexer::LexType::Percent
-        ||  currentToken->mLexType == lexer::LexType::Left_Shift
-        ||  currentToken->mLexType == lexer::LexType::Right_Shift
-        ||  currentToken->mLexType == lexer::LexType::Bitwise_AND
-        ||  currentToken->mLexType == lexer::LexType::Bitwise_OR
-        ||  currentToken->mLexType == lexer::LexType::Bitwise_XOR)
-        &&  (ast::c::binary_op_precedence(lextype_to_binary_op(currentToken->mLexType)) >= minPrecedence)) {
+    while (lexer::is_lextype_binary_op(currentToken->mLexType)
+        && ast::c::binary_op_precedence(lextype_to_binary_op(currentToken->mLexType)) >= minPrecedence) {
 
         auto op = lextype_to_binary_op(currentToken->mLexType);
         lexList.advance();

@@ -35,7 +35,7 @@ enum class LexType {
     Logical_NOT,
     Logical_AND,
     Logical_OR,
-    Equal_To,
+    Is_Equal,
     Not_Equal,
     Less_Than,
     Greater_Than,
@@ -74,14 +74,55 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Logical_NOT:              return "!";
         case LexType::Logical_AND:              return "&&";
         case LexType::Logical_OR:               return "||";
-        case LexType::Equal_To:                 return "==";
+        case LexType::Is_Equal:                 return "==";
         case LexType::Not_Equal:                return "!=";
         case LexType::Greater_Than:             return ">";
         case LexType::Less_Than:                return "<";
-        case LexType::Greater_Or_Equal:    return ">=";
-        case LexType::Less_Or_Equal:       return "<=";
+        case LexType::Greater_Or_Equal:         return ">=";
+        case LexType::Less_Or_Equal:            return "<=";
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
+}
+
+// ------------------------------> is_unary_op <------------------------------
+
+inline bool is_lextype_unary_op(LexType type) {
+    switch (type) {
+        case LexType::BitwiseComplement:
+        case LexType::Negation:
+        case LexType::Logical_NOT:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// ------------------------------> is_binary_op <------------------------------
+
+inline bool is_lextype_binary_op(LexType type) {
+    switch (type) {
+        case LexType::Plus:
+        case LexType::Negation:
+        case LexType::Asterisk:
+        case LexType::Forward_Slash:
+        case LexType::Percent:
+        case LexType::Left_Shift:
+        case LexType::Right_Shift:
+        case LexType::Bitwise_AND:
+        case LexType::Bitwise_OR:
+        case LexType::Bitwise_XOR:
+        case LexType::Logical_AND:
+        case LexType::Logical_OR:
+        case LexType::Is_Equal:
+        case LexType::Not_Equal:
+        case LexType::Less_Than:
+        case LexType::Greater_Than:
+        case LexType::Less_Or_Equal:
+        case LexType::Greater_Or_Equal:
+            return true;
+        default:
+            return false;
+    }
 }
 
 // ------------------------------> Symbols to Check <------------------------------
