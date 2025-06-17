@@ -32,6 +32,15 @@ enum class LexType {
     Bitwise_AND,
     Bitwise_OR,
     Bitwise_XOR,
+    Logical_NOT,
+    Logical_AND,
+    Logical_OR,
+    Equal_To,
+    Not_Equal,
+    Less_Than,
+    Greater_Than,
+    Less_Than_Or_Equal,
+    Greater_Than_Or_Equal,
     Undefined, // Also serves as a count dummy enum to use for looping.
 };
 
@@ -39,29 +48,38 @@ enum class LexType {
 
 inline constexpr std::string_view lex_type_to_str(LexType type) {
     switch (type) {
-        case LexType::Undefined:          return "Undefined";
-        case LexType::Identifier:         return "Identifier";
-        case LexType::Constant:           return "Constant";
-        case LexType::Int:                return "int";
-        case LexType::Void:               return "void";
-        case LexType::Return:             return "return";
-        case LexType::BitwiseComplement:  return "~";
-        case LexType::Negation:           return "-";
-        case LexType::Decrement:          return "--";
-        case LexType::Open_Parenthesis:   return "(";
-        case LexType::Close_Parenthesis:  return ")";
-        case LexType::Open_Brace:         return "{";
-        case LexType::Close_Brace:        return "}";
-        case LexType::Semicolon:          return ";";
-        case LexType::Plus:               return "+";
-        case LexType::Asterisk:           return "*";
-        case LexType::Forward_Slash:      return "/";
-        case LexType::Percent:            return "%";
-        case LexType::Left_Shift:         return "<<";
-        case LexType::Right_Shift:        return ">>";
-        case LexType::Bitwise_AND:        return "&";
-        case LexType::Bitwise_OR:         return "|";
-        case LexType::Bitwise_XOR:        return "^";
+        case LexType::Undefined:                return "Undefined";
+        case LexType::Identifier:               return "Identifier";
+        case LexType::Constant:                 return "Constant";
+        case LexType::Int:                      return "int";
+        case LexType::Void:                     return "void";
+        case LexType::Return:                   return "return";
+        case LexType::BitwiseComplement:        return "~";
+        case LexType::Negation:                 return "-";
+        case LexType::Decrement:                return "--";
+        case LexType::Open_Parenthesis:         return "(";
+        case LexType::Close_Parenthesis:        return ")";
+        case LexType::Open_Brace:               return "{";
+        case LexType::Close_Brace:              return "}";
+        case LexType::Semicolon:                return ";";
+        case LexType::Plus:                     return "+";
+        case LexType::Asterisk:                 return "*";
+        case LexType::Forward_Slash:            return "/";
+        case LexType::Percent:                  return "%";
+        case LexType::Left_Shift:               return "<<";
+        case LexType::Right_Shift:              return ">>";
+        case LexType::Bitwise_AND:              return "&";
+        case LexType::Bitwise_OR:               return "|";
+        case LexType::Bitwise_XOR:              return "^";
+        case LexType::Logical_NOT:              return "!";
+        case LexType::Logical_AND:              return "&&";
+        case LexType::Logical_OR:               return "||";
+        case LexType::Equal_To:                 return "==";
+        case LexType::Not_Equal:                return "!=";
+        case LexType::Greater_Than:             return ">";
+        case LexType::Less_Than:                return "<";
+        case LexType::Greater_Than_Or_Equal:    return ">=";
+        case LexType::Less_Than_Or_Equal:       return "<=";
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
