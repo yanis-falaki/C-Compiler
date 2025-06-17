@@ -11,11 +11,13 @@ exp = Constant(int)
     | Unary(unary_operator, exp)
     | Binary(binary_operator, exp, exp)
 
-unary_operator = Complement | Negate
+unary_operator = Complement | Negate | Logical_Not
 
 binary_operator = Add | Subtract | Divide | Remainder
                 | Left_Shift | Right_Shift 
                 | Bitwise_AND | Bitwise_OR | Bitwise_XOR
+                | Logical_AND | Logical_OR | Equal_to | Not_Equal
+                | Less_Than | Greater_Than | Less_Or_Equal | Greater_Or_Equal
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)
@@ -34,11 +36,12 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 <factor> ::= <int> | <unop> <factor> | "(" <exp> ")"
 
-<unop> ::= "-" | "~"
+<unop> ::= "-" | "~" | "!"
 
 <binop> ::= "-" | "+" | "*" | "/" | "%"
                 | "<<" | ">>" 
                 | "&" | "|" | "^"
+                | "&&" | "||" | "==" | "!=" | "<" | ">| | "<=" | ">=
 
 <identifier> ::= ? An identifier token ?
 
