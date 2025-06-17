@@ -10,7 +10,6 @@ namespace compiler::lexer {
 // ------------------------------> Type Enum <------------------------------
 
 enum class LexType {
-    Undefined,
     Identifier,
     Constant,
     BitwiseComplement,
@@ -32,7 +31,8 @@ enum class LexType {
     Right_Shift,
     Bitwise_AND,
     Bitwise_OR,
-    Bitwise_XOR
+    Bitwise_XOR,
+    Undefined, // Also serves as a count dummy enum to use for looping.
 };
 
 // ------------------------------> lex_type_to_str <------------------------------
@@ -42,12 +42,12 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Undefined:          return "Undefined";
         case LexType::Identifier:         return "Identifier";
         case LexType::Constant:           return "Constant";
-        case LexType::BitwiseComplement:  return "~";
-        case LexType::Negation:           return "-";
-        case LexType::Decrement:          return "--";
         case LexType::Int:                return "int";
         case LexType::Void:               return "void";
         case LexType::Return:             return "return";
+        case LexType::BitwiseComplement:  return "~";
+        case LexType::Negation:           return "-";
+        case LexType::Decrement:          return "--";
         case LexType::Open_Parenthesis:   return "(";
         case LexType::Close_Parenthesis:  return ")";
         case LexType::Open_Brace:         return "{";
@@ -62,32 +62,43 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Bitwise_AND:        return "&";
         case LexType::Bitwise_OR:         return "|";
         case LexType::Bitwise_XOR:        return "^";
-        default:                          return "<invalid>";
     }
+    throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
 
-// ------------------------------> Type Enum <------------------------------
+// ------------------------------> Symbols to Check <------------------------------
 
-// Manually sorted from highest to lowest length
-static constexpr std::array<LexType, 17> LEX_TYPES_TO_CHECK = {
-    LexType::Decrement,
-    LexType::Left_Shift,
-    LexType::Right_Shift,
-    LexType::BitwiseComplement,
-    LexType::Negation,
-    LexType::Open_Parenthesis,
-    LexType::Close_Parenthesis,
-    LexType::Open_Brace,
-    LexType::Close_Brace,
-    LexType::Semicolon,
-    LexType::Plus,
-    LexType::Asterisk,
-    LexType::Forward_Slash,
-    LexType::Percent,
-    LexType::Bitwise_AND,
-    LexType::Bitwise_OR,
-    LexType::Bitwise_XOR
-};
+// arraySize is length of enums - types we shouldn't check for.
+constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-5;
+
+constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> generateSortedSymbolMapping() {
+    std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> sortedSymbols{};
+    
+    size_t arrayIndex = 0;  // Separate counter for array indexing
+    for (int i = 0; i < static_cast<int>(LexType::Undefined); ++i) {
+        LexType lexType = static_cast<LexType>(i);
+
+        if (lexType == LexType::Identifier ||
+            lexType == LexType::Constant ||
+            lexType == LexType::Int ||
+            lexType == LexType::Void ||
+            lexType == LexType::Return) {
+            continue;
+        }
+
+        sortedSymbols[arrayIndex] = std::pair(lex_type_to_str(lexType), lexType);
+        arrayIndex++;  // Only increment when we actually add something
+    }
+
+    std::sort(sortedSymbols.begin(), sortedSymbols.end(),
+              [](const auto& a, const auto& b) {
+                return a.first.size() > b.first.size();
+              });
+    
+    return sortedSymbols;
+}
+
+constexpr auto SORTED_SYMBOL_MAPPING = generateSortedSymbolMapping();
 
 // ------------------------------> LexItem and KEYWORD_MAP <------------------------------
 

@@ -35,10 +35,9 @@ static std::pair<LexType, std::string_view> checkForType(std::string_view sv) {
 
     // Check all other token types by iterating through them
     
-    for (LexType type : LEX_TYPES_TO_CHECK) {
-        std::string_view tokenStr = lex_type_to_str(type);
-        if (sv.starts_with(tokenStr)) {
-            return std::make_pair(type, tokenStr);
+    for (const auto& string_symbol : SORTED_SYMBOL_MAPPING) {
+        if (sv.starts_with(string_symbol.first)) {
+            return std::make_pair(string_symbol.second, string_symbol.first);
         }
     }
     
