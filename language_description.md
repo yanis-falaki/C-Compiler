@@ -57,14 +57,21 @@ function_definition = Function(identifier, instruction* body)
 instruction = Return(val)
             | Unary(unary_operator, val src, val dst)
             | Binary(binary_operator, val src1, val src2, val dst)
+            | Copy(val src, val dst)
+            | Jump(identifier target)
+            | JumpIfZero(val condition, identifier target)
+            | JumpIfNotZero(val condition, identifier target)
+            | Label(identifier)
 
 val = Constant(int) | Var(identifier)
 
-unary_operator = Complement | Negate
+unary_operator = Complement | Negate | Not
 
 binary_operator = Add | Subtract | Multiply | Divide | Remainder
                 | Left_Shift | Right_Shift
                 | Bitwise_AND | Bitwise_OR | Bitwise_XOR
+                | Is_Equal | Not_Equal
+                | Less_Than | Greater_Than | Less_Or_Equal | Greater_Or_Equal
 ```
 
 # Assembly AST ASDL:

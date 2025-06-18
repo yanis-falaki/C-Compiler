@@ -92,6 +92,12 @@ struct TackyToAsmb {
         }
     }
 
+    void operator()(const ast::tacky::Copy& copy) const{}
+    void operator()(const ast::tacky::Jump& copy) const{}
+    void operator()(const ast::tacky::JumpIfZero& copy) const{}
+    void operator()(const ast::tacky::JumpIfNotZero& copy) const{}
+    void operator()(const ast::tacky::Label& copy) const{}
+
     // Function visitor
     ast::asmb::Function operator()(const ast::tacky::Function &func) {
         for (auto& instruction : func.mBody) {

@@ -11,12 +11,29 @@ namespace compiler::codegen {
 
 // ------------------------------> Helper function for temporary variables <------------------------------
 
-inline std::string makeTemporary() {
-    static uint32_t num;
-    std::string returnString = std::format("tmp.{}", num);
-    num += 1;
-    return returnString;
+inline ast::tacky::Var makeTemporaryRegister() {
+    static uint32_t tmpRegisterNum = 0;
+    return std::format("tmp.{}", tmpRegisterNum++);;
 }
+
+// ------------------------------> Helper function for logical AND and OR expressions <------------------------------
+
+inline std::pair<ast::tacky::Label, ast::tacky::Label> makeAndLabels() {
+    static uint32_t andNum = 0;
+    return {
+        std::format("and_false.{}", andNum),
+        std::format("and_end.{}", andNum++)
+    };
+}
+
+inline std::pair<ast::tacky::Label, ast::tacky::Label> makeOrLabels() {
+    static uint32_t orNum = 0;
+    return {
+        std::format("or_false.{}", orNum),
+        std::format("or_end.{}", orNum++)
+    };
+}
+
 
 // ------------------------------> Map between TACKY unops and C unops <------------------------------
 
@@ -24,6 +41,7 @@ inline constexpr ast::tacky::UnaryOperator c_to_tacky_unop(ast::c::UnaryOperator
     switch (unop) {
         case ast::c::UnaryOperator::Negate:          return ast::tacky::UnaryOperator::Negate;
         case ast::c::UnaryOperator::Complement:      return ast::tacky::UnaryOperator::Complement;
+        case ast::c::UnaryOperator::Logical_NOT:     return ast::tacky::UnaryOperator::Logical_NOT;
         default:
             throw std::runtime_error("c_to_tacky_unop received an unknown ast::c::UnaryOperator");
             break;
@@ -34,16 +52,22 @@ inline constexpr ast::tacky::UnaryOperator c_to_tacky_unop(ast::c::UnaryOperator
 
 inline constexpr ast::tacky::BinaryOperator c_to_tacky_binops(ast::c::BinaryOperator unop) {
     switch (unop) {
-        case ast::c::BinaryOperator::Add:            return ast::tacky::BinaryOperator::Add;
-        case ast::c::BinaryOperator::Subtract:       return ast::tacky::BinaryOperator::Subtract;
-        case ast::c::BinaryOperator::Multiply:       return ast::tacky::BinaryOperator::Multiply;
-        case ast::c::BinaryOperator::Divide:         return ast::tacky::BinaryOperator::Divide;
-        case ast::c::BinaryOperator::Modulo:         return ast::tacky::BinaryOperator::Modulo;
-        case ast::c::BinaryOperator::Left_Shift:     return ast::tacky::BinaryOperator::Left_Shift;
-        case ast::c::BinaryOperator::Right_Shift:    return ast::tacky::BinaryOperator::Right_Shift;
-        case ast::c::BinaryOperator::Bitwise_AND:    return ast::tacky::BinaryOperator::Bitwise_AND;
-        case ast::c::BinaryOperator::Bitwise_OR:     return ast::tacky::BinaryOperator::Bitwise_OR;
-        case ast::c::BinaryOperator::Bitwise_XOR:    return ast::tacky::BinaryOperator::Bitwise_XOR;
+        case ast::c::BinaryOperator::Add:               return ast::tacky::BinaryOperator::Add;
+        case ast::c::BinaryOperator::Subtract:          return ast::tacky::BinaryOperator::Subtract;
+        case ast::c::BinaryOperator::Multiply:          return ast::tacky::BinaryOperator::Multiply;
+        case ast::c::BinaryOperator::Divide:            return ast::tacky::BinaryOperator::Divide;
+        case ast::c::BinaryOperator::Modulo:            return ast::tacky::BinaryOperator::Modulo;
+        case ast::c::BinaryOperator::Left_Shift:        return ast::tacky::BinaryOperator::Left_Shift;
+        case ast::c::BinaryOperator::Right_Shift:       return ast::tacky::BinaryOperator::Right_Shift;
+        case ast::c::BinaryOperator::Bitwise_AND:       return ast::tacky::BinaryOperator::Bitwise_AND;
+        case ast::c::BinaryOperator::Bitwise_OR:        return ast::tacky::BinaryOperator::Bitwise_OR;
+        case ast::c::BinaryOperator::Bitwise_XOR:       return ast::tacky::BinaryOperator::Bitwise_XOR;
+        case ast::c::BinaryOperator::Is_Equal:          return ast::tacky::BinaryOperator::Is_Equal;
+        case ast::c::BinaryOperator::Not_Equal:         return ast::tacky::BinaryOperator::Not_Equal;
+        case ast::c::BinaryOperator::Less_Than:         return ast::tacky::BinaryOperator::Less_Than;
+        case ast::c::BinaryOperator::Greater_Than:      return ast::tacky::BinaryOperator::Greater_Than;
+        case ast::c::BinaryOperator::Less_Or_Equal:     return ast::tacky::BinaryOperator::Less_Or_Equal;
+        case ast::c::BinaryOperator::Greater_Or_Equal:  return ast::tacky::BinaryOperator::Greater_Or_Equal;
     }
     throw std::runtime_error("c_to_tacky_binops received an unknown ast::c::UnaryOperator");
 }
@@ -60,18 +84,52 @@ struct CToTacky {
 
     ast::tacky::Val operator() (const ast::c::Unary& unary) {
         ast::tacky::Val src = std::visit(*this, *unary.mExpr);
-        std::string dstName = makeTemporary();
-        ast::tacky::Var dst(dstName);
+        ast::tacky::Var dst = makeTemporaryRegister();
         auto tacky_op = c_to_tacky_unop(unary.mOp);
         mInstructions.emplace_back(ast::tacky::Unary(tacky_op, src, dst));
         return dst;
     }
 
     ast::tacky::Val operator() (const ast::c::Binary& binary) {
+        // Logical operations need to short circuit
+        if (binary.mOp == ast::c::BinaryOperator::Logical_AND) {
+            auto [falseLabel, endLabel] = makeAndLabels();
+            ast::tacky::Var result = makeTemporaryRegister();
+
+            ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
+            ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
+
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc1, falseLabel.mIdentifier));
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc2, falseLabel.mIdentifier));
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
+            mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
+            mInstructions.emplace_back(falseLabel);
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
+            mInstructions.emplace_back(endLabel);
+
+            return result;
+        }
+        else if (binary.mOp == ast::c::BinaryOperator::Logical_OR) {
+            auto [falseLabel, endLabel] = makeOrLabels();
+            ast::tacky::Var result = makeTemporaryRegister();
+
+            ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
+            ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
+
+            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc1, falseLabel.mIdentifier));
+            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc2, falseLabel.mIdentifier));
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
+            mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
+            mInstructions.emplace_back(falseLabel);
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
+            mInstructions.emplace_back(endLabel);
+
+            return result;
+        }
+
         ast::tacky::Val src1 = std::visit(*this, *binary.mLeft);
         ast::tacky::Val src2 = std::visit(*this, *binary.mRight);
-        std::string dstName = makeTemporary();
-        ast::tacky::Var dst(dstName);
+        ast::tacky::Var dst = makeTemporaryRegister();
         auto tacky_op = c_to_tacky_binops(binary.mOp);
         mInstructions.emplace_back(ast::tacky::Binary(tacky_op, src1, src2, dst));
         return dst;
@@ -95,7 +153,7 @@ struct CToTacky {
         if (functionNode.mIdentifier.has_value())
             return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(mInstructions));
         else
-            return ast::tacky::Function(makeTemporary(), std::move(mInstructions));
+            return ast::tacky::Function(makeTemporaryRegister().mIdentifier, std::move(mInstructions));
     }
 
     // Program visitor

@@ -59,6 +59,34 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+2), binary.mDst); 
     }
 
+    void operator()(const Copy& copy) const {
+        std::cout << indent() << "Copy:\n";
+        std::cout << indent() << "  " << "Source:\n";
+        std::visit(PrintVisitor(depth+2), copy.mSrc);
+        std::cout << indent() << "  " << "Destination:\n";
+        std::visit(PrintVisitor(depth+2), copy.mDst);
+    }
+
+    void operator()(const Jump& jump) const {
+        std::cout << indent() << "Jump: " << jump.mTarget << std::endl;
+    }
+
+    void operator()(const JumpIfZero& jumpIfZero) const {
+        std::cout << indent() << "Jump If Zero: " << jumpIfZero.mTarget << std::endl;
+        std::cout << indent() << "  " << "Condition:\n";
+        std::visit(PrintVisitor(depth+2), jumpIfZero.mCondition);
+    }
+
+    void operator()(const JumpIfNotZero& jumpIfNotZero) const {
+        std::cout << indent() << "Jump If Not Zero: " << jumpIfNotZero.mTarget << std::endl;
+        std::cout << indent() << "  " << "Condition:\n";
+        std::visit(PrintVisitor(depth+2), jumpIfNotZero.mCondition);
+    }
+
+    void operator()(const Label& label) const {
+        std::cout << indent() << "Label: " << label.mIdentifier << std::endl;
+    }
+
     // Function visitor
     void operator()(const Function& func) {
         std::string indent = std::string(depth * 2, ' ');

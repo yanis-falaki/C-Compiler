@@ -10,13 +10,15 @@ namespace compiler::ast::tacky {
 
 enum class UnaryOperator {
     Complement,
-    Negate
+    Negate,
+    Logical_NOT
 };
 
 constexpr std::string_view unary_op_to_string(UnaryOperator op) {
     switch (op) {
-        case UnaryOperator::Complement: return "Complement";
-        case UnaryOperator::Negate:     return "Negate";
+        case UnaryOperator::Complement:     return "Complement";
+        case UnaryOperator::Negate:         return "Negate";
+        case UnaryOperator::Logical_NOT:    return "Logical NOT";
     }
     throw std::invalid_argument("Unhandled UnaryOperator in unary_op_to_string");
 }
@@ -33,21 +35,33 @@ enum class BinaryOperator {
     Right_Shift,
     Bitwise_AND,
     Bitwise_OR,
-    Bitwise_XOR
+    Bitwise_XOR,
+    Is_Equal,
+    Not_Equal,
+    Less_Than,
+    Greater_Than,
+    Less_Or_Equal,
+    Greater_Or_Equal
 };
 
 inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     switch (op) {
-        case BinaryOperator::Add:           return "Add";
-        case BinaryOperator::Subtract:      return "Subtract";
-        case BinaryOperator::Multiply:      return "Multiply";
-        case BinaryOperator::Divide:        return "Divide";
-        case BinaryOperator::Modulo:        return "Modulo";
-        case BinaryOperator::Left_Shift:    return "Left Shift";
-        case BinaryOperator::Right_Shift:   return "Right Shift";
-        case BinaryOperator::Bitwise_AND:   return "Bitwise AND";
-        case BinaryOperator::Bitwise_OR:    return "Bitwise OR";
-        case BinaryOperator::Bitwise_XOR:   return "Bitwise XOR";
+        case BinaryOperator::Add:               return "Add";
+        case BinaryOperator::Subtract:          return "Subtract";
+        case BinaryOperator::Multiply:          return "Multiply";
+        case BinaryOperator::Divide:            return "Divide";
+        case BinaryOperator::Modulo:            return "Modulo";
+        case BinaryOperator::Left_Shift:        return "Left Shift";
+        case BinaryOperator::Right_Shift:       return "Right Shift";
+        case BinaryOperator::Bitwise_AND:       return "Bitwise AND";
+        case BinaryOperator::Bitwise_OR:        return "Bitwise OR";
+        case BinaryOperator::Bitwise_XOR:       return "Bitwise XOR";
+        case BinaryOperator::Is_Equal:          return "Is Equal";
+        case BinaryOperator::Not_Equal:         return "Not Equal";
+        case BinaryOperator::Less_Than:         return "Less Than";
+        case BinaryOperator::Greater_Than:      return "Greater Than";
+        case BinaryOperator::Less_Or_Equal:     return "Less or Equal";
+        case BinaryOperator::Greater_Or_Equal:  return "Greater or Equal";
     }
     throw std::invalid_argument("Unhandled BinaryOperator in ast::tacky::binary_op_to_string");
 }
@@ -93,7 +107,35 @@ struct Binary {
             mDst(std::move(dst)) {}
 };
 
-using Instruction = std::variant<Return, Unary, Binary>;
+struct Copy {
+    Val mSrc;
+    Val mDst;
+    Copy(Val src, Val dst) : mSrc(std::move(src)), mDst(std::move(dst)) {}
+};
+
+struct Jump {
+    std::string mTarget;
+    Jump(std::string target) : mTarget(std::move(target)) {}
+};
+
+struct JumpIfZero {
+    Val mCondition;
+    std::string mTarget;
+    JumpIfZero(Val condition, std::string target) : mCondition(std::move(condition)), mTarget(std::move(target)) {}
+};
+
+struct JumpIfNotZero {
+    Val mCondition;
+    std::string mTarget;
+    JumpIfNotZero(Val condition, std::string target) : mCondition(std::move(condition)), mTarget(std::move(target)) {}
+};
+
+struct Label {
+    std::string mIdentifier;
+    Label(std::string identifier) : mIdentifier(std::move(identifier)) {}
+};
+
+using Instruction = std::variant<Return, Unary, Binary, Copy, Jump, JumpIfZero, JumpIfNotZero, Label>;
 
 // ------------------------------> Function Definition <------------------------------
 
@@ -112,11 +154,5 @@ struct Program {
     Function mFunction;
     Program(Function function) : mFunction(std::move(function)) {}
 };
-
-// ------------------------------> Node  <------------------------------
-
-using Node = std::variant<Program, Function,
-                          Unary, Return,
-                          Var, Constant>;
 
 }
