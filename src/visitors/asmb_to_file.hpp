@@ -63,6 +63,12 @@ struct ReplacePseudoRegisters {
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
 
+    void operator()(const ast::asmb::Cmp&) const {}
+    void operator()(const ast::asmb::Jmp&) const {}
+    void operator()(const ast::asmb::JmpCC&) const {}
+    void operator()(const ast::asmb::SetCC&) const {}
+    void operator()(const ast::asmb::Label&) const {}
+
     // Function visitor
     uint32_t operator()(ast::asmb::Function& func) {
         for (auto& instruction : func.mInstructions) {
@@ -178,6 +184,12 @@ struct FixUpAsmbInstructions {
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
 
+    void operator()(const ast::asmb::Cmp&) const {}
+    void operator()(const ast::asmb::Jmp&) const {}
+    void operator()(const ast::asmb::JmpCC&) const {}
+    void operator()(const ast::asmb::SetCC&) const {}
+    void operator()(const ast::asmb::Label&) const {}
+
     // Function visitor
     void operator()(ast::asmb::Function& func) {
         // Set mInstructions reference
@@ -254,6 +266,12 @@ struct EmitAsmbVisitor {
     std::string operator() (const ast::asmb::AllocateStack allocateStack) const {
         return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
+
+    void operator()(const ast::asmb::Cmp&) const {}
+    void operator()(const ast::asmb::Jmp&) const {}
+    void operator()(const ast::asmb::JmpCC&) const {}
+    void operator()(const ast::asmb::SetCC&) const {}
+    void operator()(const ast::asmb::Label&) const {}
 
     // Function visitor
     std::string operator()(const ast::asmb::Function& function) {

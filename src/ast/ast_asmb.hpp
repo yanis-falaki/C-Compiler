@@ -105,6 +105,29 @@ constexpr std::string_view reg_name_to_operand(RegisterName op) {
     throw std::invalid_argument("Unhandled RegisterName in reg_name_to_operand");
 }
 
+// ------------------------------> ConditionCode <------------------------------
+
+enum class ConditionCode {
+    Equal,
+    Not_Equal,
+    Greater,
+    Greater_or_Equal,
+    Less,
+    Less_or_Equal
+};
+
+constexpr std::string_view condition_code_to_string(ConditionCode code) {
+    switch (code) {
+        case ConditionCode::Equal:              return "Equal";
+        case ConditionCode::Not_Equal:          return "Not Equal";
+        case ConditionCode::Greater:            return "Greater";
+        case ConditionCode::Greater_or_Equal:   return "Greater or Equal";
+        case ConditionCode::Less:               return "Less";
+        case ConditionCode::Less_or_Equal:      return "Less or Equal";
+    }
+    throw std::invalid_argument("Unhandled ConditionCode in condition_code_to_string");
+}
+
 // ------------------------------> Operands <------------------------------
 
 struct Imm {
@@ -169,7 +192,40 @@ struct AllocateStack {
     AllocateStack(int32_t value) : mValue(value) {}
 };
 
-using Instruction = std::variant<Ret, Mov, Unary, Binary, Idiv, Cdq, AllocateStack>;
+struct Cmp {
+    Operand mOperand1;
+    Operand mOperand2;
+    Cmp(Operand operand1, Operand operand2) : mOperand1(std::move(operand1)), mOperand2(std::move(operand2)) {}
+};
+
+struct Jmp {
+    std::string mIdentifier;
+    Jmp(std::string identifier) : mIdentifier(std::move(identifier)) {}
+};
+
+struct JmpCC {
+    ConditionCode mCondCode;
+    std::string mIdentifier;
+    JmpCC(ConditionCode condCode, std::string identifier)
+    :   mCondCode(condCode),
+        mIdentifier(std::move(identifier)) {}
+};
+
+struct SetCC {
+    ConditionCode mCondCode;
+    Operand mOperand;
+    SetCC(ConditionCode condCode, Operand operand)
+    :   mCondCode(condCode),
+        mOperand(std::move(operand)) {}
+};
+
+struct Label {
+    std::string mIdentifier;
+    Label(std::string identifier) : mIdentifier(std::move(identifier)) {}
+};
+
+using Instruction = std::variant<Ret, Mov, Unary, Binary, Idiv, Cdq, AllocateStack,
+                                 Cmp, Jmp, JmpCC, SetCC, Label>;
 
 // ------------------------------> Function Definition <------------------------------
 
@@ -187,11 +243,5 @@ struct Program {
     Function mFunction;
     Program(Function function) : mFunction(std::move(function)) {}
 };
-
-// ------------------------------> Node <------------------------------
-
-using Node = std::variant<Program, Function,
-                          AllocateStack, Mov, Ret,
-                          Stack, Pseudo, Reg, Imm>;
 
 }

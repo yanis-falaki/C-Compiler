@@ -84,8 +84,13 @@ instruction = Mov(operand src, operand dst)
             | Ret
             | Unary(unary_operator, operand)
             | Binary(binary_operator, operand, operand)
+            | Cmp(operand, operand)
             | Idiv(operand)
             | Cdq
+            | Jmp(identifier)
+            | JmpCC(cond_code, identifier)
+            | SetCC(cond_code, operand)
+            | Label(identifier)
             | AllocateStack(int)
 
 unary_operator = Neg | Not
@@ -93,6 +98,8 @@ unary_operator = Neg | Not
 binary_operator = Add | Sub | Mult
 
 operand = Imm(int) | Reg(reg) | Pseudo(identifier) | Stack(int)
+
+cond_code = E | NE | G | GE | L | LE
 
 reg = AX | DX | R10 | R11
 ```

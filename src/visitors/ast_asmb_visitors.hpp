@@ -80,6 +80,36 @@ struct PrintVisitor {
         std::cout << indent() << "Allocate Stack: " << allocateStack.mValue << std::endl;
     }
 
+    void operator()(const Cmp& cmp) const {
+        std::cout << indent() << "Cmp:\n";
+        std::cout << indent() << "  Operand 1:\n";
+        std::visit(PrintVisitor(depth+2), cmp.mOperand1);
+        std::cout << indent() << "  Operand 2:\n";
+        std::visit(PrintVisitor(depth+2), cmp.mOperand2);
+    }
+
+    void operator()(const Jmp& jmp) const {
+        std::cout << indent() << "Jmp: " << jmp.mIdentifier << std::endl;
+    }
+
+    void operator()(const JmpCC& jmpCC) const {
+        std::cout << indent() << "JumpCC: " << jmpCC.mIdentifier << std::endl;
+        std::cout << indent() << "  Condition Code: "
+            << condition_code_to_string(jmpCC.mCondCode) << std::endl;
+    }
+
+    void operator()(const SetCC& setCC) const {
+        std::cout << indent() << "SetCC:\n";
+        std::cout << indent() << "  Condition Code: "
+            << condition_code_to_string(setCC.mCondCode) << std::endl;
+        std::cout << indent() << "  Operand:\n";
+        std::visit(PrintVisitor(depth+2), setCC.mOperand);
+    }
+
+    void operator()(const Label& label) const {
+        std::cout << indent() << "Label: " << label.mIdentifier << std::endl;
+    }
+
     // Function visitor
     void operator()(const Function& func) {
         if (func.mIdentifier.has_value()) {
