@@ -108,22 +108,22 @@ constexpr std::string_view reg_name_to_operand(RegisterName op) {
 // ------------------------------> ConditionCode <------------------------------
 
 enum class ConditionCode {
-    Equal,
-    Not_Equal,
-    Greater,
-    Greater_or_Equal,
-    Less,
-    Less_or_Equal
+    E,
+    NE,
+    G,
+    GE,
+    L,
+    LE
 };
 
 constexpr std::string_view condition_code_to_string(ConditionCode code) {
     switch (code) {
-        case ConditionCode::Equal:              return "Equal";
-        case ConditionCode::Not_Equal:          return "Not Equal";
-        case ConditionCode::Greater:            return "Greater";
-        case ConditionCode::Greater_or_Equal:   return "Greater or Equal";
-        case ConditionCode::Less:               return "Less";
-        case ConditionCode::Less_or_Equal:      return "Less or Equal";
+        case ConditionCode::E:  return "E";
+        case ConditionCode::NE: return "NE";
+        case ConditionCode::G:  return "G";
+        case ConditionCode::GE: return "GE";
+        case ConditionCode::L:  return "L";
+        case ConditionCode::LE: return "LE";
     }
     throw std::invalid_argument("Unhandled ConditionCode in condition_code_to_string");
 }
