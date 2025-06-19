@@ -41,6 +41,7 @@ enum class LexType {
     Greater_Than,
     Less_Or_Equal,
     Greater_Or_Equal,
+    Assignment,
     Undefined, // Also serves as a count dummy enum to use for looping.
 };
 
@@ -80,6 +81,7 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Less_Than:                return "<";
         case LexType::Greater_Or_Equal:         return ">=";
         case LexType::Less_Or_Equal:            return "<=";
+        case LexType::Assignment:               return "=";
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
