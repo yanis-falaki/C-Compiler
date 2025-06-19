@@ -29,7 +29,7 @@ inline std::pair<ast::tacky::Label, ast::tacky::Label> makeAndLabels() {
 inline std::pair<ast::tacky::Label, ast::tacky::Label> makeOrLabels() {
     static uint32_t orNum = 0;
     return {
-        std::format("or_false.{}", orNum),
+        std::format("or_true.{}", orNum),
         std::format("or_end.{}", orNum++)
     };
 }
@@ -92,29 +92,38 @@ struct CToTacky {
 
     ast::tacky::Val operator() (const ast::c::Binary& binary) {
         // Logical operations need to short circuit
-        if ((binary.mOp == ast::c::BinaryOperator::Logical_AND) ||
-            (binary.mOp == ast::c::BinaryOperator::Logical_OR)
-        ) {
+        if (binary.mOp == ast::c::BinaryOperator::Logical_AND) {
             auto [falseLabel, endLabel] = makeAndLabels();
             ast::tacky::Var result = makeTemporaryRegister();
 
             ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc1, falseLabel.mIdentifier));
+
             ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
-
-            bool isOr = (binary.mOp == ast::c::BinaryOperator::Logical_OR);
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc2, falseLabel.mIdentifier));
             
-            if (isOr) {
-                mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc1, falseLabel.mIdentifier));
-                mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc2, falseLabel.mIdentifier));
-            } else {
-                mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc1, falseLabel.mIdentifier));
-                mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc2, falseLabel.mIdentifier));
-            }
-
             mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
             mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
             mInstructions.emplace_back(falseLabel);
             mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
+            mInstructions.emplace_back(endLabel);
+
+            return result;
+        }
+        else if (binary.mOp == ast::c::BinaryOperator::Logical_OR) {
+            auto [trueLabel, endLabel] = makeOrLabels();
+            ast::tacky::Var result = makeTemporaryRegister();
+
+            ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
+            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc1, trueLabel.mIdentifier));
+
+            ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
+            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc2, trueLabel.mIdentifier));
+
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
+            mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
+            mInstructions.emplace_back(trueLabel);
+            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
             mInstructions.emplace_back(endLabel);
 
             return result;

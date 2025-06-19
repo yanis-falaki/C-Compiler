@@ -83,26 +83,25 @@ enum class RegisterName {
     R11
 };
 
-constexpr std::string_view reg_name_to_string(RegisterName op) {
+enum class RegisterSize {
+    DWORD,
+    BYTE
+};
+
+constexpr std::string_view reg_name_to_string(RegisterName op, RegisterSize size = RegisterSize::DWORD) {
     switch (op) {
-        case RegisterName::AX:           return "AX";
-        case RegisterName::DX:           return "DX";
-        case RegisterName::CX:           return "CX";
-        case RegisterName::R10:          return "R10";
-        case RegisterName::R11:          return "R11";
+        case RegisterName::AX:
+            return (size == RegisterSize::BYTE) ? "\%al" : "\%eax";
+        case RegisterName::DX:
+            return (size == RegisterSize::BYTE) ? "\%dl" : "\%edx";
+        case RegisterName::CX:
+            return (size == RegisterSize::BYTE) ? "\%cl" : "\%ecx";
+        case RegisterName::R10:
+            return (size == RegisterSize::BYTE) ? "%r10b" : "%r10d";
+        case RegisterName::R11:
+            return (size == RegisterSize::BYTE) ? "%r11b" : "%r11d";
     }
     throw std::invalid_argument("Unhandled RegisterName in reg_name_to_string");
-}
-
-constexpr std::string_view reg_name_to_operand(RegisterName op) {
-    switch (op) {
-        case RegisterName::AX:           return "\%eax";
-        case RegisterName::DX:           return "\%edx";
-        case RegisterName::CX:           return "\%ecx";
-        case RegisterName::R10:          return "%r10d";
-        case RegisterName::R11:          return "%r11d";
-    }
-    throw std::invalid_argument("Unhandled RegisterName in reg_name_to_operand");
 }
 
 // ------------------------------> ConditionCode <------------------------------
@@ -118,12 +117,12 @@ enum class ConditionCode {
 
 constexpr std::string_view condition_code_to_string(ConditionCode code) {
     switch (code) {
-        case ConditionCode::E:  return "E";
-        case ConditionCode::NE: return "NE";
-        case ConditionCode::G:  return "G";
-        case ConditionCode::GE: return "GE";
-        case ConditionCode::L:  return "L";
-        case ConditionCode::LE: return "LE";
+        case ConditionCode::E:  return "e";
+        case ConditionCode::NE: return "ne";
+        case ConditionCode::G:  return "g";
+        case ConditionCode::GE: return "ge";
+        case ConditionCode::L:  return "l";
+        case ConditionCode::LE: return "le";
     }
     throw std::invalid_argument("Unhandled ConditionCode in condition_code_to_string");
 }

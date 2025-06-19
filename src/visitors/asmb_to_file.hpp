@@ -255,7 +255,7 @@ struct EmitAsmbVisitor {
     }
 
     std::string operator() (const ast::asmb::Reg& reg) const {
-        return std::string(ast::asmb::reg_name_to_operand(reg.mReg));
+        return std::string(ast::asmb::reg_name_to_string(reg.mReg));
     }
 
     std::string operator() (const ast::asmb::Pseudo& pseudo) const {
@@ -299,11 +299,36 @@ struct EmitAsmbVisitor {
         return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
 
-    std::string operator()(const ast::asmb::Cmp&) const {return "";}
-    std::string operator()(const ast::asmb::Jmp&) const {return "";}
-    std::string operator()(const ast::asmb::JmpCC&) const {return "";}
-    std::string operator()(const ast::asmb::SetCC&) const {return "";}
-    std::string operator()(const ast::asmb::Label&) const {return "";}
+    std::string operator()(const ast::asmb::Cmp& cmp) const {
+        return std::format("cmpl {}, {}", std::visit(*this, cmp.mOperand1), std::visit(*this, cmp.mOperand2));
+    }
+
+    std::string operator()(const ast::asmb::Jmp& jmp) const {
+        return std::format("jmp .L{}", jmp.mIdentifier);
+    }
+
+    std::string operator()(const ast::asmb::JmpCC& jmpCC) const {
+        return std::format("j{} .L{}", ast::asmb::condition_code_to_string(jmpCC.mCondCode), jmpCC.mIdentifier);
+    }
+
+    std::string operator()(const ast::asmb::SetCC& setCC) const {
+        std::string_view dstString;
+        // Can't use visitor on register as we need 1 byte name.
+        if (std::holds_alternative<ast::asmb::Reg>(setCC.mDst))
+            dstString = ast::asmb::reg_name_to_string(std::get<ast::asmb::Reg>(setCC.mDst).mReg, 
+                                                      ast::asmb::RegisterSize::BYTE);
+        else
+            dstString = std::visit(*this, setCC.mDst);
+
+        return std::format(
+            "set{} {}",
+            ast::asmb::condition_code_to_string(setCC.mCondCode),
+            dstString);
+    }
+
+    std::string operator()(const ast::asmb::Label& label) const {
+        return std::format(".L{}:", label.mIdentifier);
+    }
 
     // Function visitor
     std::string operator()(const ast::asmb::Function& function) {

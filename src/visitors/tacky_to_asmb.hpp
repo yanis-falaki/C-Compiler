@@ -111,7 +111,7 @@ struct TackyToAsmb {
         // Relational operators
         else if (ast::tacky::is_relational_binop(binary.mOp)) {
             ast::asmb::ConditionCode cc = tacky_binop_to_condition_code(binary.mOp);
-            mInstructions.emplace_back(ast::asmb::Cmp(std::move(src1), std::move(src2)));
+            mInstructions.emplace_back(ast::asmb::Cmp(std::move(src2), std::move(src1)));
             mInstructions.emplace_back(ast::asmb::Mov(ast::asmb::Imm(0), dst));
             mInstructions.emplace_back(ast::asmb::SetCC(cc, std::move(dst)));
         }

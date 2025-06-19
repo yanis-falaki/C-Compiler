@@ -103,7 +103,14 @@ struct PrintVisitor {
         std::cout << indent() << "  Condition Code: "
             << condition_code_to_string(setCC.mCondCode) << std::endl;
         std::cout << indent() << "  Operand:\n";
-        std::visit(PrintVisitor(depth+2), setCC.mDst);
+        if (std::holds_alternative<ast::asmb::Reg>(setCC.mDst)) {
+            std::cout << indent() << "    Reg: " << ast::asmb::reg_name_to_string(
+                std::get<ast::asmb::Reg>(setCC.mDst).mReg, 
+                ast::asmb::RegisterSize::BYTE) << std::endl;
+        }
+        else
+            std::visit(PrintVisitor(depth+2), setCC.mDst);
+        
     }
 
     void operator()(const Label& label) const {
