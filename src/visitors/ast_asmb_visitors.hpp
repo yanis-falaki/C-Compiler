@@ -103,7 +103,7 @@ struct PrintVisitor {
         std::cout << indent() << "  Condition Code: "
             << condition_code_to_string(setCC.mCondCode) << std::endl;
         std::cout << indent() << "  Operand:\n";
-        std::visit(PrintVisitor(depth+2), setCC.mOperand);
+        std::visit(PrintVisitor(depth+2), setCC.mDst);
     }
 
     void operator()(const Label& label) const {

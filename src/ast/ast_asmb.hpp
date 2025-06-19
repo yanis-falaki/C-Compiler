@@ -213,10 +213,10 @@ struct JmpCC {
 
 struct SetCC {
     ConditionCode mCondCode;
-    Operand mOperand;
-    SetCC(ConditionCode condCode, Operand operand)
+    Operand mDst;
+    SetCC(ConditionCode condCode, Operand dst)
     :   mCondCode(condCode),
-        mOperand(std::move(operand)) {}
+        mDst(std::move(dst)) {}
 };
 
 struct Label {

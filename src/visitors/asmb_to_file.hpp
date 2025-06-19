@@ -63,11 +63,19 @@ struct ReplacePseudoRegisters {
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
 
-    void operator()(const ast::asmb::Cmp&) const {}
-    void operator()(const ast::asmb::Jmp&) const {}
-    void operator()(const ast::asmb::JmpCC&) const {}
-    void operator()(const ast::asmb::SetCC&) const {}
-    void operator()(const ast::asmb::Label&) const {}
+    void operator()(ast::asmb::Cmp& cmp) {
+        cmp.mOperand1 = std::visit(*this, cmp.mOperand1);
+        cmp.mOperand2 = std::visit(*this, cmp.mOperand2);
+    }
+
+    void operator()(const ast::asmb::Jmp& jmp) const {}
+    void operator()(const ast::asmb::JmpCC& jmpCC) const {}
+
+    void operator()(ast::asmb::SetCC& setCC) {
+        setCC.mDst = std::visit(*this, setCC.mDst);
+    }
+
+    void operator()(const ast::asmb::Label& label) const {}
 
     // Function visitor
     uint32_t operator()(ast::asmb::Function& func) {
@@ -184,11 +192,35 @@ struct FixUpAsmbInstructions {
     void operator()(const ast::asmb::AllocateStack& allocateStack) const {
     }
 
-    void operator()(const ast::asmb::Cmp&) const {}
-    void operator()(const ast::asmb::Jmp&) const {}
-    void operator()(const ast::asmb::JmpCC&) const {}
-    void operator()(const ast::asmb::SetCC&) const {}
-    void operator()(const ast::asmb::Label&) const {}
+    void operator()(ast::asmb::Cmp& cmp) const {
+
+        // Compare operation can't have Operand2 be an immediate value (analaguous to dst in sub).
+        if (std::holds_alternative<ast::asmb::Imm>(cmp.mOperand2)) {
+            ast::asmb::Mov preMovInstruction(cmp.mOperand2, ast::asmb::Reg(ast::asmb::RegisterName::R10));
+            cmp.mOperand2 = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter, preMovInstruction);
+        }
+
+        // Compare operation can't have both operands in memory.
+        // Second operand necessarily won't be in memory if last if statement was true as it was moved to R10 register.
+        else if (std::holds_alternative<ast::asmb::Stack>(cmp.mOperand1)
+            && std::holds_alternative<ast::asmb::Stack>(cmp.mOperand2)
+        ) {
+            // Move operand1 to r10 register
+            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+            ast::asmb::Mov movInstruction(cmp.mOperand1, registerDst);
+
+            // Replace operand1 in binop as r10 register
+            cmp.mOperand1 = registerDst;
+
+            // Insert move instruction
+            mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(movInstruction));
+        }
+    }
+    void operator()(const ast::asmb::Jmp& jmp) const {}
+    void operator()(const ast::asmb::JmpCC& jmpCC) const {}
+    void operator()(const ast::asmb::SetCC& setCC) const {}
+    void operator()(const ast::asmb::Label& label) const {}
 
     // Function visitor
     void operator()(ast::asmb::Function& func) {
@@ -267,11 +299,11 @@ struct EmitAsmbVisitor {
         return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
 
-    void operator()(const ast::asmb::Cmp&) const {}
-    void operator()(const ast::asmb::Jmp&) const {}
-    void operator()(const ast::asmb::JmpCC&) const {}
-    void operator()(const ast::asmb::SetCC&) const {}
-    void operator()(const ast::asmb::Label&) const {}
+    std::string operator()(const ast::asmb::Cmp&) const {return "";}
+    std::string operator()(const ast::asmb::Jmp&) const {return "";}
+    std::string operator()(const ast::asmb::JmpCC&) const {return "";}
+    std::string operator()(const ast::asmb::SetCC&) const {return "";}
+    std::string operator()(const ast::asmb::Label&) const {return "";}
 
     // Function visitor
     std::string operator()(const ast::asmb::Function& function) {

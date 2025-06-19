@@ -92,36 +92,29 @@ struct CToTacky {
 
     ast::tacky::Val operator() (const ast::c::Binary& binary) {
         // Logical operations need to short circuit
-        if (binary.mOp == ast::c::BinaryOperator::Logical_AND) {
+        if ((binary.mOp == ast::c::BinaryOperator::Logical_AND) ||
+            (binary.mOp == ast::c::BinaryOperator::Logical_OR)
+        ) {
             auto [falseLabel, endLabel] = makeAndLabels();
             ast::tacky::Var result = makeTemporaryRegister();
 
             ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
             ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
 
-            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc1, falseLabel.mIdentifier));
-            mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc2, falseLabel.mIdentifier));
+            bool isOr = (binary.mOp == ast::c::BinaryOperator::Logical_OR);
+            
+            if (isOr) {
+                mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc1, falseLabel.mIdentifier));
+                mInstructions.emplace_back(ast::tacky::JumpIfZero(expressionSrc2, falseLabel.mIdentifier));
+            } else {
+                mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc1, falseLabel.mIdentifier));
+                mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc2, falseLabel.mIdentifier));
+            }
+
             mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
             mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
             mInstructions.emplace_back(falseLabel);
             mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
-            mInstructions.emplace_back(endLabel);
-
-            return result;
-        }
-        else if (binary.mOp == ast::c::BinaryOperator::Logical_OR) {
-            auto [falseLabel, endLabel] = makeOrLabels();
-            ast::tacky::Var result = makeTemporaryRegister();
-
-            ast::tacky::Val expressionSrc1 = std::visit(*this, *binary.mLeft);
-            ast::tacky::Val expressionSrc2 = std::visit(*this, *binary.mRight);
-
-            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc1, falseLabel.mIdentifier));
-            mInstructions.emplace_back(ast::tacky::JumpIfNotZero(expressionSrc2, falseLabel.mIdentifier));
-            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(0), result));
-            mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
-            mInstructions.emplace_back(falseLabel);
-            mInstructions.emplace_back(ast::tacky::Copy(ast::tacky::Constant(1), result));
             mInstructions.emplace_back(endLabel);
 
             return result;

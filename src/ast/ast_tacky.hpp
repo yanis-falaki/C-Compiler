@@ -66,6 +66,19 @@ inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     throw std::invalid_argument("Unhandled BinaryOperator in ast::tacky::binary_op_to_string");
 }
 
+inline constexpr bool is_relational_binop(BinaryOperator op) {
+    switch (op) {
+        case BinaryOperator::Is_Equal:
+        case BinaryOperator::Not_Equal:
+        case BinaryOperator::Less_Than:
+        case BinaryOperator::Less_Or_Equal:
+        case BinaryOperator::Greater_Than:
+        case BinaryOperator::Greater_Or_Equal:
+            return true;
+        default:
+            return false;
+    }
+}
 
 // ------------------------------> Val <------------------------------
 
