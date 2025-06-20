@@ -2,14 +2,21 @@
 ```
 program = Program(function_definition)
 
-function_definition = Function(identifier name, statement body)
+function_definition = Function(identifier name, block_item* body)
+
+block_item = S(statement) | D(decleration)
 
 statement = Return(exp value)
-          | If(exp condition, statement then, statement? else)
+          | Expression(exp)
+          | Null
+
+declaration = Declaration(identifier name, exp? init)
 
 exp = Constant(int)
     | Unary(unary_operator, exp)
     | Binary(binary_operator, exp, exp)
+    | Var(identifier)
+    | Assignment(exp, exp)
 
 unary_operator = Complement | Negate | Logical_Not
 
@@ -24,17 +31,19 @@ binary_operator = Add | Subtract | Divide | Remainder
 ```
 <program> ::= <function>
 
-<function> ::= "int" <identifier> "(" "void" ")" "{" <statement> "}"
+<function> ::= "int" <identifier> "(" "void" ")" "{" {<block-item>} "}"
 
-<statement> ::= <return> | <if>
+<block-item> ::= <statement> | <declaration>
 
-<return> ::= "return" <exp> ";"
+<declaration> ::= "int" <identifier> ["=" <exp>] ";"
+
+<statement> ::= "return" <exp> ";" | <exp> ";" | ";"
 
 <if> ::= "if" "(" <exp> ")" <statement> [ "else" <statement> ]
 
 <exp> ::= <factor> | <exp> <binop> <exp>
 
-<factor> ::= <int> | <unop> <factor> | "(" <exp> ")"
+<factor> ::= <int> | <identifier> | <unop> <factor> | "(" <exp> ")"
 
 <unop> ::= "-" | "~" | "!"
 
