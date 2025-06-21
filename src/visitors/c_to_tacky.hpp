@@ -82,6 +82,10 @@ struct CToTacky {
         return ast::tacky::Constant(constant.mValue);
     }
 
+    ast::tacky::Val operator()(const ast::c::Variable& var) {
+        return ast::tacky::Var(var.mIdentifier);
+    }
+
     ast::tacky::Val operator() (const ast::c::Unary& unary) {
         ast::tacky::Val src = std::visit(*this, *unary.mExpr);
         ast::tacky::Var dst = makeTemporaryRegister();
@@ -137,20 +141,37 @@ struct CToTacky {
         return dst;
     }
 
+    ast::tacky::Val operator()(const ast::c::Assignment& assignment) {
+        return ast::tacky::Constant(0);
+    }
+
     // Statement visitors
-    void operator() (const ast::c::Return& returnNode) {
+    void operator()(const ast::c::Statement& statement){
+        std::visit(*this, statement);
+    }
+
+    void operator()(const ast::c::Return& returnNode) {
         ast::tacky::Val src = std::visit(*this, returnNode.mExpr);
         mInstructions.emplace_back(ast::tacky::Return(src));
     }
 
-    // Not yet implemented
-    void operator() (const ast::c::If& ifNode) {
-        return;
+    void operator()(const ast::c::ExpressionStatement& es) {}
+
+    void operator()(const ast::c::NullStatement& null) {}
+
+    void operator()(const ast::c::If& ifNode) {}
+
+    // Declaration
+    void operator()(const ast::c::Declaration& declaration) {}
+
+    // BlockItem
+    void operator()(const ast::c::BlockItem& blockItem) {
+        std::visit(*this, blockItem);
     }
 
     // Function visitor
     ast::tacky::Function operator()(const ast::c::Function& functionNode) {
-        std::visit(*this, functionNode.mBody);
+        //std::visit(*this, functionNode.mBody);
 
         if (functionNode.mIdentifier.has_value())
             return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(mInstructions));

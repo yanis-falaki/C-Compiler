@@ -121,10 +121,45 @@ inline bool is_lextype_binary_op(LexType type) {
         case LexType::Greater_Than:
         case LexType::Less_Or_Equal:
         case LexType::Greater_Or_Equal:
+        case LexType::Assignment:
             return true;
         default:
             return false;
     }
+}
+
+// ------------------------------> binary_op_precedence <------------------------------
+
+inline constexpr uint32_t binary_op_precedence(LexType type) {
+    switch (type) {
+        case LexType::Asterisk:           return 50;
+        case LexType::Forward_Slash:      return 50;
+        case LexType::Percent:            return 50;
+    
+        case LexType::Plus:               return 45;
+        case LexType::Negation:           return 45;
+    
+        case LexType::Left_Shift:         return 40;
+        case LexType::Right_Shift:        return 40;
+    
+        case LexType::Less_Than:          return 35;
+        case LexType::Greater_Than:       return 35;
+        case LexType::Less_Or_Equal:      return 35;
+        case LexType::Greater_Or_Equal:   return 35;
+    
+        case LexType::Is_Equal:           return 30;
+        case LexType::Not_Equal:          return 30;
+    
+        case LexType::Bitwise_AND:        return 25;
+        case LexType::Bitwise_XOR:        return 20;
+        case LexType::Bitwise_OR:         return 15;
+    
+        case LexType::Logical_AND:        return 10;
+        case LexType::Logical_OR:         return 5;
+        
+        case LexType::Assignment:         return 1;
+    }
+    throw std::invalid_argument("Unhandled LexType in binary_op_precedence");
 }
 
 // ------------------------------> Symbols to Check <------------------------------

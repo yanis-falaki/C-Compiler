@@ -74,42 +74,14 @@ inline constexpr std::string_view binary_op_to_string(BinaryOperator op) {
     throw std::invalid_argument("Unhandled BinaryOperator in binary_op_to_string");
 }
 
-inline constexpr uint32_t binary_op_precedence(BinaryOperator op) {
-    switch (op) {
-        case BinaryOperator::Multiply:            return 140;
-        case BinaryOperator::Divide:              return 140;
-        case BinaryOperator::Modulo:              return 140;
-    
-        case BinaryOperator::Add:                 return 130;
-        case BinaryOperator::Subtract:            return 130;
-    
-        case BinaryOperator::Left_Shift:          return 120;
-        case BinaryOperator::Right_Shift:         return 120;
-    
-        case BinaryOperator::Less_Than:           return 110;
-        case BinaryOperator::Greater_Than:        return 110;
-        case BinaryOperator::Less_Or_Equal:       return 110;
-        case BinaryOperator::Greater_Or_Equal:    return 110;
-    
-        case BinaryOperator::Is_Equal:            return 100;
-        case BinaryOperator::Not_Equal:           return 100;
-    
-        case BinaryOperator::Bitwise_AND:         return 90;
-        case BinaryOperator::Bitwise_XOR:         return 80;
-        case BinaryOperator::Bitwise_OR:          return 70;
-    
-        case BinaryOperator::Logical_AND:         return 60;
-        case BinaryOperator::Logical_OR:          return 50;
-    }
-    throw std::invalid_argument("Unhandled BinaryOperator in binary_op_precedence");
-}
-
 // ------------------------------> Expressions <------------------------------
 
 struct Constant;
 struct Unary;
 struct Binary;
-using Expression = std::variant<Constant, Unary, Binary>;
+struct Assignment;
+struct Variable;
+using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment>;
 
 struct Constant {
     int mValue;
@@ -130,17 +102,39 @@ struct Binary {
         : mOp(op), mLeft(std::move(left)), mRight(std::move(right)) {}
 };
 
+struct Variable {
+    std::string mIdentifier;
+    Variable(std::string identifier) : mIdentifier(std::move(identifier)) {}
+};
+
+struct Assignment {
+    std::unique_ptr<Expression> mLeft;
+    std::unique_ptr<Expression> mRight;
+    Assignment(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+    :   mLeft(std::move(left)),
+        mRight(std::move(right)) {}
+};
+
 // ------------------------------> Statements <------------------------------
 
 // forward declarations
 struct Return;
 struct If;
-using Statement = std::variant<Return, If>;
+struct ExpressionStatement;
+struct NullStatement;
+using Statement = std::variant<Return, ExpressionStatement, NullStatement, If>;
 
 struct Return {
     Expression mExpr;
     Return(Expression expr) : mExpr(std::move(expr)) {}
 };
+
+struct ExpressionStatement {
+    Expression mExpr;
+    ExpressionStatement(Expression expr) : mExpr(std::move(expr)) {}
+};
+
+struct NullStatement {};
 
 struct If {
     Expression mCondition;
@@ -155,16 +149,36 @@ struct If {
           mElse(std::move(elseBranch)) {}
 };
 
+// ------------------------------> Declaration <------------------------------
+
+struct Declaration {
+    std::string mIdentifier;
+    std::optional<Expression> mExpression;
+
+    Declaration(std::string identifier, Expression expression)
+    :   mIdentifier(std::move(identifier)),
+        mExpression(std::move(expression)) {}
+
+    Declaration(std::string identifier) 
+    :   mIdentifier(std::move(identifier)), 
+        mExpression(std::nullopt) {}
+};
+
+
+// ------------------------------> BlockItem Definition <------------------------------
+
+using BlockItem = std::variant<Declaration, Statement>;
+
 // ------------------------------> Function Definition <------------------------------
 
 struct Function {
     std::optional<std::string> mIdentifier;
-    Statement mBody;
+    std::vector<BlockItem> mBody;
 
-    Function(std::optional<std::string> identifier, Statement body)
+    Function(std::optional<std::string> identifier, std::vector<BlockItem> body)
         : mIdentifier(identifier), mBody(std::move(body)) {}
 
-    Function(Statement body)
+    Function(std::vector<BlockItem> body)
         : mIdentifier(std::nullopt), mBody(std::move(body)) {}
 };
 

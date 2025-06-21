@@ -101,6 +101,11 @@ static ast::c::Expression parseFactor(lexer::LexList& lexList) {
         return innerExpression;
     }
 
+    else if (currentToken.mLexType == lexer::LexType::Identifier) {
+        lexList.advance();
+        return ast::c::Variable(std::string(currentToken.mSV));
+    }
+
     std::string errorString = std::format("Malformed factor, got: {}", currentToken.mSV);
     throw std::runtime_error(errorString);
 }
@@ -108,43 +113,89 @@ static ast::c::Expression parseFactor(lexer::LexList& lexList) {
 // ------------------------------> parseExpression <------------------------------
 
 static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence) {
-    auto left = parseFactor(lexList);
+    auto expression = parseFactor(lexList);
     const lexer::LexItem* currentToken = &lexList.current();
 
     // Check if operator is a binary op and is above minimum precendence level
     while (lexer::is_lextype_binary_op(currentToken->mLexType)
-        && ast::c::binary_op_precedence(lextype_to_binary_op(currentToken->mLexType)) >= minPrecedence) {
+        && lexer::binary_op_precedence(currentToken->mLexType) >= minPrecedence) {
+        
+        if (currentToken->mLexType == lexer::LexType::Assignment) {
+            lexList.advance();
+            auto right = std::make_unique<ast::c::Expression>(
+                parseExpression(lexList, lexer::binary_op_precedence(lexer::LexType::Assignment)));
+            expression = ast::c::Assignment(std::make_unique<ast::c::Expression>(std::move(expression)), 
+                                        std::move(right));
+            break;
+        }
 
         auto op = lextype_to_binary_op(currentToken->mLexType);
         lexList.advance();
-        auto right = std::make_unique<ast::c::Expression>(parseExpression(lexList, ast::c::binary_op_precedence(op)+1));
-        left = ast::c::Binary(op, std::make_unique<ast::c::Expression>(std::move(left)), 
+        auto right = std::make_unique<ast::c::Expression>(parseExpression(lexList, lexer::binary_op_precedence(currentToken->mLexType)+1));
+        expression = ast::c::Binary(op, std::make_unique<ast::c::Expression>(std::move(expression)), 
                                   std::move(right));
         currentToken = &lexList.current();
     }
 
-    return left;
-}
-
-// ------------------------------> parseReturn <------------------------------
-
-static ast::c::Return parseReturn(lexer::LexList& lexList) {
-    expectAndAdvance(lexer::LexType::Return, lexList);
-    auto returnObject = ast::c::Return(parseExpression(lexList));
-    expectAndAdvance(lexer::LexType::Semicolon, lexList);
-    return returnObject;
+    return expression;
 }
 
 // ------------------------------> parseStatement <------------------------------
 
 static ast::c::Statement parseStatement(lexer::LexList& lexList) {
-    // Parse statement, only handles Return for now
-    const lexer::LexItem& lexStatement = lexList.current();
-    if (lexStatement.mLexType == lexer::LexType::Return)
-        return parseReturn(lexList);
+    // Return Statement
+    if (lexList.current().mLexType == lexer::LexType::Return) {
+        lexList.advance();
+        auto returnObject = ast::c::Return(parseExpression(lexList));
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return returnObject;
+    }
+    // Null Statement
+    else if (lexList.current().mLexType == lexer::LexType::Semicolon) {
+        lexList.advance();
+        return ast::c::NullStatement();
+    }
+    // Expression Statement
+    else {
+        ast::c::ExpressionStatement es(parseExpression(lexList));
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return es;
+    }
 
-    std::string errorString = std::format("Expected a statement, instead got: {}", lexStatement.mSV);
-    throw std::runtime_error(errorString);
+    //std::string errorString = std::format("Expected a statement, instead got: {}", lexStatement.mSV);
+    //throw std::runtime_error(errorString);
+}
+
+// ------------------------------> parseDeclaration <------------------------------
+
+static ast::c::Declaration parseDeclaration(lexer::LexList& lexList) {
+    expectAndAdvance(lexer::LexType::Int, lexList);
+    std::string identifier(expectAndAdvance(lexer::LexType::Identifier, lexList).mSV);
+    const auto& currentToken = lexList.current();
+    lexList.advance();
+
+    if (currentToken.mLexType == lexer::LexType::Assignment) {
+        ast::c::Expression expression = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return ast::c::Declaration(std::move(identifier), std::move(expression));
+    }
+    else if (currentToken.mLexType == lexer::LexType::Semicolon) {
+        return ast::c::Declaration(std::move(identifier));
+    }
+    else {
+        throw(std::format("Invalid declaration, got {}", currentToken.mSV));
+    }
+}
+
+// ------------------------------> parseBlockItem <------------------------------
+static ast::c::BlockItem parseBlockItem(lexer::LexList& lexList) {
+    const lexer::LexItem* currentToken = &lexList.current();
+
+    // Declaration
+    if (currentToken->mLexType == lexer::LexType::Int) {
+        return parseDeclaration(lexList);
+    }
+    else return parseStatement(lexList);
 }
 
 // ------------------------------> parseFunction <------------------------------
@@ -164,13 +215,16 @@ static ast::c::Function parseFunction(lexer::LexList& lexList) {
     // Opening brace
     expectAndAdvance(lexer::LexType::Open_Brace, lexList);
 
-    // Create return function.
-    auto returnedFunction = ast::c::Function(std::string(lexIdentifier.mSV), parseStatement(lexList));
+    /*              END Function Preamble              */
 
-    // Closing brace
-    expectAndAdvance(lexer::LexType::Close_Brace, lexList);
+    std::vector<ast::c::BlockItem> functionBody;
+    while (lexList.current().mLexType != lexer::LexType::Close_Brace) {
+        auto nextBlockItem = parseBlockItem(lexList);
+        functionBody.push_back(std::move(nextBlockItem));
+    }
 
-    return returnedFunction;
+    lexList.advance();
+    return ast::c::Function(std::string(lexIdentifier.mSV), std::move(functionBody));
 }
 
 // ------------------------------> parseProgram <------------------------------

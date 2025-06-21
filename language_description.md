@@ -50,7 +50,8 @@ binary_operator = Add | Subtract | Divide | Remainder
 <binop> ::= "-" | "+" | "*" | "/" | "%"
                 | "<<" | ">>" 
                 | "&" | "|" | "^"
-                | "&&" | "||" | "==" | "!=" | "<" | ">| | "<=" | ">=
+                | "&&" | "||" | "==" | "!=" | "<" | ">| | "<=" | ">="
+                | "="
 
 <identifier> ::= ? An identifier token ?
 
