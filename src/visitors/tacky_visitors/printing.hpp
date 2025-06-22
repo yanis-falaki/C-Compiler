@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <iostream>
-#include "../ast/ast_tacky.hpp"
+#include "../../ast/ast_tacky.hpp"
 
 namespace compiler::ast::tacky {
 

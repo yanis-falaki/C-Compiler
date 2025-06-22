@@ -9,12 +9,12 @@
 #include "lexer.hpp"
 #include "ast/ast_c.hpp"
 #include "parser.hpp"
-#include "visitors/ast_asmb_visitors.hpp"
-#include "visitors/ast_c_visitors.hpp"
-#include "visitors/ast_tacky_visitors.hpp"
+#include "visitors/asmb_visitors/printing.hpp"
+#include "visitors/c_visitors/printing.hpp"
+#include "visitors/tacky_visitors/printing.hpp"
 #include "visitors/c_to_tacky.hpp"
 #include "visitors/tacky_to_asmb.hpp"
-#include "visitors/asmb_to_file.hpp"
+#include "visitors/asmb_visitors/asmb_to_file.hpp"
 
 namespace fs = std::filesystem;
 
