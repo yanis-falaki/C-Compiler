@@ -142,7 +142,10 @@ struct CToTacky {
     }
 
     ast::tacky::Val operator()(const ast::c::Assignment& assignment) {
-        return ast::tacky::Constant(0);
+        auto result = std::visit(*this, *assignment.mRight);
+        ast::tacky::Var var(std::get<ast::c::Variable>(*assignment.mLeft).mIdentifier);
+        mInstructions.emplace_back(ast::tacky::Copy(result, var));
+        return var;
     }
 
     // Statement visitors
@@ -155,12 +158,21 @@ struct CToTacky {
         mInstructions.emplace_back(ast::tacky::Return(src));
     }
 
-    void operator()(const ast::c::ExpressionStatement& es) {}
+    void operator()(const ast::c::ExpressionStatement& es) {
+        std::visit(*this, es.mExpr);
+    }
 
     void operator()(const ast::c::NullStatement& null) {}
 
     // Declaration
-    void operator()(const ast::c::Declaration& declaration) {}
+    void operator()(const ast::c::Declaration& declaration) {
+        if (!declaration.mExpr.has_value())
+            return;
+
+        auto result = std::visit(*this, declaration.mExpr.value());
+        ast::tacky::Var var(declaration.mIdentifier);
+        mInstructions.emplace_back(ast::tacky::Copy(result, var));
+    }
 
     // BlockItem
     void operator()(const ast::c::BlockItem& blockItem) {
@@ -169,7 +181,10 @@ struct CToTacky {
 
     // Function visitor
     ast::tacky::Function operator()(const ast::c::Function& functionNode) {
-        //std::visit(*this, functionNode.mBody);
+        for (const auto& blockItem : functionNode.mBody) {
+            std::visit(*this, blockItem);
+        }
+        mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
 
         if (functionNode.mIdentifier.has_value())
             return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(mInstructions));

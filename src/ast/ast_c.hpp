@@ -140,15 +140,15 @@ struct NullStatement {};
 
 struct Declaration {
     std::string mIdentifier;
-    std::optional<Expression> mExpression;
+    std::optional<Expression> mExpr;
 
     Declaration(std::string identifier, Expression expression)
     :   mIdentifier(std::move(identifier)),
-        mExpression(std::move(expression)) {}
+        mExpr(std::move(expression)) {}
 
     Declaration(std::string identifier) 
     :   mIdentifier(std::move(identifier)), 
-        mExpression(std::nullopt) {}
+        mExpr(std::nullopt) {}
 };
 
 

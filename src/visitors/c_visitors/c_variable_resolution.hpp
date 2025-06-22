@@ -78,8 +78,8 @@ struct VariableResolution {
         declaration.mIdentifier = uniqueName;
 
         // Correct initializer with new var name if it exists
-        if (declaration.mExpression.has_value())
-            std::visit(*this, declaration.mExpression.value());
+        if (declaration.mExpr.has_value())
+            std::visit(*this, declaration.mExpr.value());
     }
 
     // Function visitor

@@ -74,9 +74,9 @@ struct PrintVisitor {
     // Declaration
     void operator()(const Declaration& declaration) const {
         std::cout << indent() << "Declaration: " << declaration.mIdentifier << std::endl;
-        if (declaration.mExpression.has_value()) {
+        if (declaration.mExpr.has_value()) {
             std::cout << indent() << "  Initialized Expression\n";
-            std::visit(PrintVisitor(depth+2), declaration.mExpression.value());
+            std::visit(PrintVisitor(depth+2), declaration.mExpr.value());
         }
     }
 
