@@ -12,6 +12,7 @@
 #include "visitors/asmb_visitors/printing.hpp"
 #include "visitors/c_visitors/printing.hpp"
 #include "visitors/tacky_visitors/printing.hpp"
+#include "visitors/c_visitors/c_variable_resolution.hpp"
 #include "visitors/c_to_tacky.hpp"
 #include "visitors/tacky_to_asmb.hpp"
 #include "visitors/asmb_visitors/asmb_to_file.hpp"
@@ -32,6 +33,7 @@ int main(int argc, char* argv[]) {
         ("S,assembly", "Stop at assembly generation")
         ("lex", "Stop at lexing")
         ("parse", "Stop at parsing")
+        ("validate", "Stop at C AST validation")
         ("tacky", "Stop at tacky AST generation")
         ("codegen", "Stop at assembly generation");
 
@@ -132,6 +134,14 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         compiler::ast::c::PrintVisitor()(program);
         return fs::path();
     }
+
+    // Validate C AST
+    compiler::ast::c::VariableResolution()(program);
+    if (args.count("validate")) {
+        compiler::ast::c::PrintVisitor()(program);
+        return fs::path();
+    }
+
     // Convert C to TACKY
     auto tackyProgram = compiler::codegen::CToTacky()(program);
     if (args.count("tacky")) {

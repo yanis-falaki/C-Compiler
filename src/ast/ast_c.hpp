@@ -122,7 +122,7 @@ struct Return;
 struct If;
 struct ExpressionStatement;
 struct NullStatement;
-using Statement = std::variant<Return, ExpressionStatement, NullStatement, If>;
+using Statement = std::variant<Return, ExpressionStatement, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -135,19 +135,6 @@ struct ExpressionStatement {
 };
 
 struct NullStatement {};
-
-struct If {
-    Expression mCondition;
-    std::unique_ptr<Statement> mThen;
-    std::optional<std::unique_ptr<Statement>> mElse;
-
-    If(Expression condition,
-       std::unique_ptr<Statement> thenBranch,
-       std::optional<std::unique_ptr<Statement>> elseBranch = std::nullopt)
-        : mCondition(std::move(condition)),
-          mThen(std::move(thenBranch)),
-          mElse(std::move(elseBranch)) {}
-};
 
 // ------------------------------> Declaration <------------------------------
 

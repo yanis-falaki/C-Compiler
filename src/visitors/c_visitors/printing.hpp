@@ -70,18 +70,6 @@ struct PrintVisitor {
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
-    
-    void operator()(const If& ifStmt) const {
-        std::cout << indent() << "If:" << std::endl;
-        std::cout << indent() << "  Condition:" << std::endl;
-        std::visit(PrintVisitor(depth + 2), ifStmt.mCondition);
-        std::cout << indent() << "  Then:" << std::endl;
-        std::visit(PrintVisitor(depth + 2), *ifStmt.mThen);
-        if (ifStmt.mElse.has_value()) {
-            std::cout << indent() << "  Else:" << std::endl;
-            std::visit(PrintVisitor(depth + 2), *ifStmt.mElse.value());
-        }
-    }
 
     // Declaration
     void operator()(const Declaration& declaration) const {

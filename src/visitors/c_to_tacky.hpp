@@ -159,8 +159,6 @@ struct CToTacky {
 
     void operator()(const ast::c::NullStatement& null) {}
 
-    void operator()(const ast::c::If& ifNode) {}
-
     // Declaration
     void operator()(const ast::c::Declaration& declaration) {}
 
