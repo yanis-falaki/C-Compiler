@@ -42,6 +42,16 @@ enum class LexType {
     Less_Or_Equal,
     Greater_Or_Equal,
     Assignment,
+    Plus_Equal,
+    Minus_Equal,
+    Multiply_Equal,
+    Divide_Equal,
+    Modulo_Equal,
+    AND_Equal,
+    OR_Equal,
+    XOR_Equal,
+    Left_Shift_Equal,
+    Right_Shift_Equal,
     Undefined, // Also serves as a count dummy enum to use for looping.
 };
 
@@ -82,6 +92,16 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Greater_Or_Equal:         return ">=";
         case LexType::Less_Or_Equal:            return "<=";
         case LexType::Assignment:               return "=";
+        case LexType::Plus_Equal:               return "+=";
+        case LexType::Minus_Equal:              return "-=";
+        case LexType::Multiply_Equal:           return "*=";
+        case LexType::Divide_Equal:             return "/=";
+        case LexType::Modulo_Equal:             return "%=";
+        case LexType::AND_Equal:                return "&=";
+        case LexType::OR_Equal:                 return "|=";
+        case LexType::XOR_Equal:                return "^=";
+        case LexType::Left_Shift_Equal:         return "<<=";
+        case LexType::Right_Shift_Equal:        return ">>=";
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
@@ -101,7 +121,11 @@ inline bool is_lextype_unary_op(LexType type) {
 
 // ------------------------------> is_binary_op <------------------------------
 
+// forward declaration
+inline bool is_assignment(LexType type); 
+
 inline bool is_lextype_binary_op(LexType type) {
+    if (is_assignment(type)) return true;
     switch (type) {
         case LexType::Plus:
         case LexType::Negation:
@@ -121,7 +145,27 @@ inline bool is_lextype_binary_op(LexType type) {
         case LexType::Greater_Than:
         case LexType::Less_Or_Equal:
         case LexType::Greater_Or_Equal:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// ------------------------------> is_assignment <------------------------------
+
+inline bool is_assignment(LexType type) {
+    switch (type) {
         case LexType::Assignment:
+        case LexType::Plus_Equal:
+        case LexType::Minus_Equal:
+        case LexType::Multiply_Equal:
+        case LexType::Divide_Equal:
+        case LexType::Modulo_Equal:
+        case LexType::AND_Equal:
+        case LexType::OR_Equal:
+        case LexType::XOR_Equal:
+        case LexType::Left_Shift_Equal:
+        case LexType::Right_Shift_Equal:
             return true;
         default:
             return false;
@@ -158,6 +202,16 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
         case LexType::Logical_OR:         return 5;
         
         case LexType::Assignment:         return 1;
+        case LexType::Plus_Equal:         return 1;
+        case LexType::Minus_Equal:        return 1;
+        case LexType::Multiply_Equal:     return 1;
+        case LexType::Divide_Equal:       return 1;
+        case LexType::Modulo_Equal:       return 1;
+        case LexType::AND_Equal:          return 1;
+        case LexType::OR_Equal:           return 1;
+        case LexType::XOR_Equal:          return 1;
+        case LexType::Left_Shift_Equal:   return 1;
+        case LexType::Right_Shift_Equal:  return 1;
     }
     throw std::invalid_argument("Unhandled LexType in binary_op_precedence");
 }

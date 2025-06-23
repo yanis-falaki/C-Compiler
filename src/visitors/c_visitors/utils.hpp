@@ -99,4 +99,82 @@ struct PrintVisitor {
     }
 };
 
+
+// ------------------------------> Copy Utils <------------------------------
+
+// Print Visitor
+struct CopyVisitor {
+    Expression operator()(const Constant& constant) const {
+        return Constant(constant.mValue);
+    }
+
+    Expression operator()(const Variable& variable) const {
+        return Variable(variable.mIdentifier);
+    }
+
+    Expression operator()(const Unary& unary) const {
+        std::visit(*this, *unary.mExpr);
+        return Unary(
+            unary.mOp,
+            std::make_unique<Expression>(std::visit(*this, *unary.mExpr)));
+    }
+
+    Expression operator()(const Binary& binary) const {
+        return Binary(
+            binary.mOp,
+            std::make_unique<Expression>(std::visit(*this, *binary.mLeft)),
+            std::make_unique<Expression>(std::visit(*this, *binary.mRight))
+        );
+    }
+
+    Expression operator()(const Assignment& assignment) const {
+        return Assignment(
+            std::make_unique<Expression>(std::visit(*this, *assignment.mLeft)),
+            std::make_unique<Expression>(std::visit(*this, *assignment.mRight))
+        );
+    }
+    
+    // Statement visitors
+    BlockItem operator()(const Statement& statement) const {
+        return std::visit(*this, statement);
+    }
+
+    Statement operator()(const Return& ret) const {
+        return Return(std::visit(*this, ret.mExpr));
+    }
+
+    Statement operator()(const ExpressionStatement& es) const {
+        return ExpressionStatement(std::visit(*this, es.mExpr));
+    }
+
+    Statement operator()(const NullStatement& null) const {
+        return NullStatement();
+    }
+
+    // Declaration
+    BlockItem operator()(const Declaration& declaration) const {
+        if (declaration.mExpr.has_value())
+            return Declaration(declaration.mIdentifier, std::visit(*this, declaration.mExpr.value()));
+        else
+            return Declaration(declaration.mIdentifier);
+    }
+
+    // Function visitor
+    Function operator()(const Function& func) const {
+        std::vector<BlockItem> funcBody;
+        funcBody.reserve(func.mBody.size()); // Reserve space instead of resize
+        
+        for (const auto& blockItem : func.mBody) {
+            funcBody.emplace_back(std::visit(*this, blockItem));
+        }
+    
+        return Function(func.mIdentifier, std::move(funcBody));
+    }
+
+    // Program visitor
+    Program operator()(const Program& program) const {
+        return Program((*this)(program.mFunction));
+    }
+};
+
 }

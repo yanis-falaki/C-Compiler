@@ -8,6 +8,7 @@
 #include "ast/ast_c.hpp"
 #include "parser.hpp"
 #include "utils.h"
+#include "visitors/c_visitors/utils.hpp"
 
 namespace fs = std::filesystem;
 
@@ -28,24 +29,36 @@ inline constexpr ast::c::UnaryOperator lextype_to_unary_op(lexer::LexType unop) 
 
 inline constexpr ast::c::BinaryOperator lextype_to_binary_op(lexer::LexType unop) {
     switch (unop) {
-        case lexer::LexType::Negation:               return ast::c::BinaryOperator::Subtract;
-        case lexer::LexType::Plus:                   return ast::c::BinaryOperator::Add;
-        case lexer::LexType::Asterisk:               return ast::c::BinaryOperator::Multiply;
-        case lexer::LexType::Forward_Slash:          return ast::c::BinaryOperator::Divide;
-        case lexer::LexType::Percent:                return ast::c::BinaryOperator::Modulo;
-        case lexer::LexType::Left_Shift:             return ast::c::BinaryOperator::Left_Shift;
-        case lexer::LexType::Right_Shift:            return ast::c::BinaryOperator::Right_Shift;
-        case lexer::LexType::Bitwise_AND:            return ast::c::BinaryOperator::Bitwise_AND;
-        case lexer::LexType::Bitwise_OR:             return ast::c::BinaryOperator::Bitwise_OR;
-        case lexer::LexType::Bitwise_XOR:            return ast::c::BinaryOperator::Bitwise_XOR;
-        case lexer::LexType::Logical_AND:            return ast::c::BinaryOperator::Logical_AND;
-        case lexer::LexType::Logical_OR:             return ast::c::BinaryOperator::Logical_OR;
-        case lexer::LexType::Is_Equal:               return ast::c::BinaryOperator::Is_Equal;
-        case lexer::LexType::Not_Equal:              return ast::c::BinaryOperator::Not_Equal;
-        case lexer::LexType::Less_Than:              return ast::c::BinaryOperator::Less_Than;
-        case lexer::LexType::Greater_Than:           return ast::c::BinaryOperator::Greater_Than;
-        case lexer::LexType::Less_Or_Equal:          return ast::c::BinaryOperator::Less_Or_Equal;
-        case lexer::LexType::Greater_Or_Equal:       return ast::c::BinaryOperator::Greater_Or_Equal;
+        case lexer::LexType::Negation:              return ast::c::BinaryOperator::Subtract;
+        case lexer::LexType::Plus:                  return ast::c::BinaryOperator::Add;
+        case lexer::LexType::Asterisk:              return ast::c::BinaryOperator::Multiply;
+        case lexer::LexType::Forward_Slash:         return ast::c::BinaryOperator::Divide;
+        case lexer::LexType::Percent:               return ast::c::BinaryOperator::Modulo;
+        case lexer::LexType::Left_Shift:            return ast::c::BinaryOperator::Left_Shift;
+        case lexer::LexType::Right_Shift:           return ast::c::BinaryOperator::Right_Shift;
+        case lexer::LexType::Bitwise_AND:           return ast::c::BinaryOperator::Bitwise_AND;
+        case lexer::LexType::Bitwise_OR:            return ast::c::BinaryOperator::Bitwise_OR;
+        case lexer::LexType::Bitwise_XOR:           return ast::c::BinaryOperator::Bitwise_XOR;
+        case lexer::LexType::Logical_AND:           return ast::c::BinaryOperator::Logical_AND;
+        case lexer::LexType::Logical_OR:            return ast::c::BinaryOperator::Logical_OR;
+        case lexer::LexType::Is_Equal:              return ast::c::BinaryOperator::Is_Equal;
+        case lexer::LexType::Not_Equal:             return ast::c::BinaryOperator::Not_Equal;
+        case lexer::LexType::Less_Than:             return ast::c::BinaryOperator::Less_Than;
+        case lexer::LexType::Greater_Than:          return ast::c::BinaryOperator::Greater_Than;
+        case lexer::LexType::Less_Or_Equal:         return ast::c::BinaryOperator::Less_Or_Equal;
+        case lexer::LexType::Greater_Or_Equal:      return ast::c::BinaryOperator::Greater_Or_Equal;
+
+        // Compound Assignment
+        case lexer::LexType::Plus_Equal:            return ast::c::BinaryOperator::Add;
+        case lexer::LexType::Minus_Equal:           return ast::c::BinaryOperator::Subtract;
+        case lexer::LexType::Multiply_Equal:        return ast::c::BinaryOperator::Multiply;
+        case lexer::LexType::Divide_Equal:          return ast::c::BinaryOperator::Divide;
+        case lexer::LexType::Modulo_Equal:          return ast::c::BinaryOperator::Modulo;
+        case lexer::LexType::AND_Equal:             return ast::c::BinaryOperator::Bitwise_AND;
+        case lexer::LexType::OR_Equal:              return ast::c::BinaryOperator::Bitwise_OR;
+        case lexer::LexType::XOR_Equal:             return ast::c::BinaryOperator::Bitwise_XOR;
+        case lexer::LexType::Left_Shift_Equal:      return ast::c::BinaryOperator::Left_Shift;
+        case lexer::LexType::Right_Shift_Equal:     return ast::c::BinaryOperator::Right_Shift;
     }
     throw std::runtime_error("lextype_to_binary_op received an invalid lexer::LexType");
 }
@@ -120,12 +133,28 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
     while (lexer::is_lextype_binary_op(currentToken->mLexType)
         && lexer::binary_op_precedence(currentToken->mLexType) >= minPrecedence) {
         
-        if (currentToken->mLexType == lexer::LexType::Assignment) {
+        if (lexer::is_assignment(currentToken->mLexType)) {
             lexList.advance();
             auto right = std::make_unique<ast::c::Expression>(
                 parseExpression(lexList, lexer::binary_op_precedence(lexer::LexType::Assignment)));
-            expression = ast::c::Assignment(std::make_unique<ast::c::Expression>(std::move(expression)), 
-                                        std::move(right));
+            
+            // Regular assignment
+            if (currentToken->mLexType == lexer::LexType::Assignment)
+                expression = ast::c::Assignment(
+                    std::make_unique<ast::c::Expression>(std::move(expression)), 
+                    std::move(right));
+            // Compound assignment, right side is a binary expression
+            else {
+                auto op = lextype_to_binary_op(currentToken->mLexType);
+                ast::c::Expression copiedExpr = std::visit(ast::c::CopyVisitor{}, expression);
+                expression = ast::c::Assignment(
+                    std::make_unique<ast::c::Expression>(std::move(copiedExpr)),
+                    std::make_unique<ast::c::Expression>(
+                        ast::c::Binary(
+                            op,
+                            std::make_unique<ast::c::Expression>(std::move(expression)),  
+                            std::move(right))));
+            }
             break;
         }
 

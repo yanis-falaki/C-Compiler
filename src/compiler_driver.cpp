@@ -10,7 +10,7 @@
 #include "ast/ast_c.hpp"
 #include "parser.hpp"
 #include "visitors/asmb_visitors/printing.hpp"
-#include "visitors/c_visitors/printing.hpp"
+#include "visitors/c_visitors/utils.hpp"
 #include "visitors/tacky_visitors/printing.hpp"
 #include "visitors/c_visitors/c_variable_resolution.hpp"
 #include "visitors/c_to_tacky.hpp"
