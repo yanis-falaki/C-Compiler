@@ -104,6 +104,15 @@ struct PrintVisitor {
         }
     }
 
+    void operator()(const GoTo& gotoStmt) const {
+        std::cout << indent() << "Go to: " << gotoStmt.mTarget << std::endl;
+    }
+
+    void operator()(const LabelledStatement& labelledStmt) const {
+        std::cout << indent() << "Labelled Statement: " << labelledStmt.mIdentifier << std::endl;
+        std::visit(PrintVisitor(depth+1), *labelledStmt.mStatement);
+    }
+
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
@@ -207,6 +216,17 @@ struct CopyVisitor {
             ifStatement.mElse.has_value()
                 ? std::make_unique<Statement>(std::visit(*this, *ifStatement.mElse.value()))
                 : std::optional<std::unique_ptr<Statement>>(std::nullopt)
+        );
+    }
+
+    Statement operator()(const GoTo& gotoStmt) const {
+        return GoTo(gotoStmt.mTarget);
+    }
+
+    Statement operator()(const LabelledStatement& labelledStmt) const {
+        return LabelledStatement(
+            labelledStmt.mIdentifier,
+            std::make_unique<Statement>(std::visit(*this, *labelledStmt.mStatement))
         );
     }
 

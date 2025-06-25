@@ -12,7 +12,7 @@
 #include "visitors/asmb_visitors/printing.hpp"
 #include "visitors/c_visitors/utils.hpp"
 #include "visitors/tacky_visitors/printing.hpp"
-#include "visitors/c_visitors/c_variable_resolution.hpp"
+#include "visitors/c_visitors/semantic_analysis.hpp"
 #include "visitors/c_to_tacky.hpp"
 #include "visitors/tacky_to_asmb.hpp"
 #include "visitors/asmb_visitors/asmb_to_file.hpp"
@@ -137,6 +137,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     // Validate C AST
     compiler::ast::c::VariableResolution()(program);
+    compiler::ast::c::LabelResolution()(program);
     if (args.count("validate")) {
         compiler::ast::c::PrintVisitor()(program);
         return fs::path();

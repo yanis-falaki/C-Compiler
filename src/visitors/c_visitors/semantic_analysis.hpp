@@ -7,6 +7,7 @@
 #include <optional>
 #include <variant>
 #include <unordered_map>
+#include <unordered_set>
 #include <format>
 #include "../../ast/ast_c.hpp"
 
@@ -19,6 +20,8 @@ inline std::string makeUniqueVarName(const std::string& varName) {
     // cv prefix for custom variable
     return std::format("{}.cv{}", varName, tmpRegisterNum++);
 }
+
+// ------------------------------> VariableResolution <------------------------------
 
 struct VariableResolution {
 
@@ -84,6 +87,12 @@ struct VariableResolution {
             std::visit(*this, *ifStmt.mElse.value());
     }
 
+    void operator()(GoTo& gotoStmt) const {}
+
+    void operator()(LabelledStatement& labelledStmt) const {
+        std::visit(*this, *labelledStmt.mStatement);
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Declaration visitor
@@ -107,6 +116,82 @@ struct VariableResolution {
         for (BlockItem& blockItem : func.mBody) {
             std::visit(*this, blockItem);
         }
+    }
+
+    // Program visitor
+    void operator()(Program& program) {
+        (*this)(program.mFunction);
+    }
+};
+
+// ------------------------------> LabelResolution <------------------------------
+
+struct LabelResolution {
+
+    std::unordered_set<std::string> mPresentLabels;
+    std::unordered_set<std::string> mNeededLabels;
+
+    void checkNeededLabelsInPresentLabels() const {
+        for (auto& label : mNeededLabels) {
+            if (!mPresentLabels.contains(label))
+                throw std::runtime_error(std::format("Label {} used but not defined", label));
+        }
+    }
+
+    // Expression visitors
+    void operator()(const Constant& constant) const {}
+
+    void operator()(const Variable& variable) const {}
+
+    void operator()(const Unary& unary) const {}
+
+    void operator()(const Binary& binary) const {}
+
+    void operator()(const Assignment& assignment) const {}
+
+    void operator()(const Crement& crement) const {}
+
+    void operator()(const Conditional& conditional) const {}
+
+    // Statement visitors
+    void operator()(Statement& statement) {
+        std::visit(*this, statement);
+    }
+
+    void operator()(const Return& rs) const {}
+
+    void operator()(const ExpressionStatement& es) const {}
+
+    void operator()(If& ifStmt) {
+        std::visit(*this, *ifStmt.mThen);
+        if (ifStmt.mElse.has_value())
+            std::visit(*this, *ifStmt.mElse.value());
+    }
+
+    void operator()(GoTo& gotoStmt) {
+        if (!mNeededLabels.contains(gotoStmt.mTarget))
+            mNeededLabels.insert(gotoStmt.mTarget);
+    }
+
+    void operator()(LabelledStatement& labelledStmt) {
+        if (mPresentLabels.contains(labelledStmt.mIdentifier))
+            throw std::runtime_error(std::format("Label: {} already declared!", labelledStmt.mIdentifier));
+        
+        mPresentLabels.insert(labelledStmt.mIdentifier);
+        std::visit(*this, *labelledStmt.mStatement);
+    }
+
+    void operator()(const NullStatement& ns) const {}
+
+    // Declaration visitor
+    void operator()(const Declaration& declaration) const {}
+
+    // Function visitor
+    void operator()(Function& func) {
+        for (BlockItem& blockItem : func.mBody) {
+            std::visit(*this, blockItem);
+        }
+        checkNeededLabelsInPresentLabels();
     }
 
     // Program visitor

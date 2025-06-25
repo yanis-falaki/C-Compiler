@@ -257,6 +257,15 @@ struct CToTacky {
         mInstructions.emplace_back(endLabel);
     }
 
+    void operator()(const ast::c::GoTo& gotoStmt) {
+        mInstructions.emplace_back(ast::tacky::Jump(gotoStmt.mTarget));
+    }
+
+    void operator()(const ast::c::LabelledStatement& labelledStmt) {
+        mInstructions.emplace_back(ast::tacky::Label(labelledStmt.mIdentifier));
+        std::visit(*this, *labelledStmt.mStatement);
+    }
+
     void operator()(const ast::c::NullStatement& null) {}
 
     // Declaration

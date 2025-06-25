@@ -210,15 +210,17 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
 // ------------------------------> parseStatement <------------------------------
 
 static ast::c::Statement parseStatement(lexer::LexList& lexList) {
+    auto currentToken = lexList.current();
+
     // Return Statement
-    if (lexList.current().mLexType == lexer::LexType::Return) {
+    if (currentToken.mLexType == lexer::LexType::Return) {
         lexList.advance();
         auto returnObject = ast::c::Return(parseExpression(lexList));
         expectAndAdvance(lexer::LexType::Semicolon, lexList);
         return returnObject;
     }
     // If Statement
-    else if (lexList.current().mLexType == lexer::LexType::If) {
+    else if (currentToken.mLexType == lexer::LexType::If) {
         std::optional<std::unique_ptr<ast::c::Statement>> elseStmt = std::nullopt;
 
         lexList.advance();
@@ -238,8 +240,28 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
             std::move(elseStmt)
         );
     }
+    // goto Statement
+    else if (currentToken.mLexType == lexer::LexType::Go_To) {
+        lexList.advance();
+        auto target = expectAndAdvance(lexer::LexType::Identifier, lexList);
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return ast::c::GoTo(std::string(target.mSV));
+    }
+    // Labelled Statement
+    else if (currentToken.mLexType == lexer::LexType::Identifier &&
+             lexList.next().mLexType == lexer::LexType::Colon
+    ) {
+        std::string label(currentToken.mSV);
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Colon, lexList);
+        auto statement = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        return ast::c::LabelledStatement(
+            std::move(label),
+            std::move(statement)
+        );
+    }
     // Null Statement
-    else if (lexList.current().mLexType == lexer::LexType::Semicolon) {
+    else if (currentToken.mLexType == lexer::LexType::Semicolon) {
         lexList.advance();
         return ast::c::NullStatement();
     }

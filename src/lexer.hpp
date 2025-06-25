@@ -21,6 +21,7 @@ enum class LexType {
     Return,
     If,
     Else,
+    Go_To,
     Open_Parenthesis,
     Close_Parenthesis,
     Open_Brace,
@@ -72,6 +73,7 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Return:                   return "return";
         case LexType::If:                       return "if";
         case LexType::Else:                     return "else";
+        case LexType::Go_To:                    return "goto";
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
@@ -124,6 +126,7 @@ constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
     std::make_pair("return", LexType::Return),
     std::make_pair("if", LexType::If),
     std::make_pair("else", LexType::Else),
+    std::make_pair("goto", LexType::Go_To)
 };
 
 // ------------------------------> is_unary_op <------------------------------
@@ -242,7 +245,7 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
 // ------------------------------> Symbols to Check <------------------------------
 
 // arraySize is length of enums - types we shouldn't check for.
-constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-5;
+constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-8;
 
 constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> generateSortedSymbolMapping() {
     std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> sortedSymbols{};
@@ -255,7 +258,10 @@ constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> 
             lexType == LexType::Constant ||
             lexType == LexType::Int ||
             lexType == LexType::Void ||
-            lexType == LexType::Return) {
+            lexType == LexType::Return ||
+            lexType == LexType::If ||
+            lexType == LexType::Else ||
+            lexType == LexType::Go_To ) {
             continue;
         }
 
@@ -308,6 +314,12 @@ public:
         if (!hasCurrent()) throw std::out_of_range("No more tokens");
         ++mCurrentIndex;
         return mLexVector[mCurrentIndex-1];
+    }
+
+    const LexItem& next() const {
+        if (mCurrentIndex + 1 >= mLexVector.size())
+            throw std::out_of_range("No next token");
+        return mLexVector[mCurrentIndex+1];
     }
 
     /// @brief Reset the internal index to 0

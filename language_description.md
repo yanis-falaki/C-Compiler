@@ -20,6 +20,8 @@ exp = Constant(int)
     | Crement(exp, bool post, bool increment)
     | If(exp condition, statement then, statement? else)
     | Conditional(exp condition, exp, exp)
+    | GoTo(identifier target)
+    | Label(identifier, statement)
 
 unary_operator = Complement | Negate | Logical_Not
 
@@ -43,6 +45,8 @@ binary_operator = Add | Subtract | Divide | Remainder
 <statement> ::= "return" <exp> ";" 
                | <exp> ";"
                | "if" "(" <exp> ")" <statement> ["else" <statement>]
+               | "goto" <identifier> ";"
+               | <identifier> ":" <statement>
                | ";"
 
 <exp> ::= <factor> | <exp> <binop> <exp> | <exp> "?" <exp> : <exp>

@@ -145,8 +145,10 @@ struct Conditional {
 struct Return;
 struct ExpressionStatement;
 struct If;
+struct GoTo;
+struct LabelledStatement;
 struct NullStatement;
-using Statement = std::variant<Return, ExpressionStatement, If, NullStatement>;
+using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -171,6 +173,19 @@ struct If {
     :   mCondition(std::move(condition)),
         mThen(std::move(then)),
         mElse(std::nullopt) {}
+};
+
+struct GoTo {
+    std::string mTarget;
+    GoTo(std::string target) : mTarget(std::move(target)) {}
+};
+
+struct LabelledStatement {
+    std::string mIdentifier;
+    std::unique_ptr<Statement> mStatement;
+    LabelledStatement(std::string identifier, std::unique_ptr<Statement> statement)
+    :   mIdentifier(std::move(identifier)),
+        mStatement(std::move(statement)) {}
 };
 
 struct NullStatement {};
