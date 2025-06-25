@@ -17,6 +17,7 @@ exp = Constant(int)
     | Binary(binary_operator, exp, exp)
     | Var(identifier)
     | Assignment(exp, exp)
+    | Crement(exp, bool post, bool increment)
 
 unary_operator = Complement | Negate | Logical_Not
 
@@ -39,11 +40,11 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 <statement> ::= "return" <exp> ";" | <exp> ";" | ";"
 
-<if> ::= "if" "(" <exp> ")" <statement> [ "else" <statement> ]
-
 <exp> ::= <factor> | <exp> <binop> <exp>
 
-<factor> ::= <int> | <identifier> | <unop> <factor> | "(" <exp> ")"
+<factor> ::= <int> | <identifier> | <unop> <factor> | "(" <exp> ")" | <crement> <factor> | <factor> <crement>
+
+<crement> "++" | "--"
 
 <unop> ::= "-" | "~" | "!"
 
@@ -51,7 +52,8 @@ binary_operator = Add | Subtract | Divide | Remainder
                 | "<<" | ">>" 
                 | "&" | "|" | "^"
                 | "&&" | "||" | "==" | "!=" | "<" | ">| | "<=" | ">="
-                | "="
+                | "=" | "+=" |"-=" | "*=" | "/=" | "%="
+                | "<<=" | ">>=" | "&=" | "|=" | "^="
 
 <identifier> ::= ? An identifier token ?
 

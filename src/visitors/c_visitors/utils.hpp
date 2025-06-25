@@ -51,6 +51,20 @@ struct PrintVisitor {
         std::cout << indent() + "  " << "Right Expression:\n";
         std::visit(PrintVisitor(depth+2), *assignment.mRight);
     }
+
+    void operator()(const Crement& crement) const {
+        if (crement.mPost)
+            std::cout << indent() << "Post-";
+        else
+            std::cout << indent() << "Pre-";
+        
+        if (crement.mIncrement)
+            std::cout << "Increment:\n";
+        else
+            std::cout << "Decrement:\n";
+
+        std::visit(PrintVisitor(depth+1), *crement.mVar);
+    }
     
     // Statement visitors
     void operator()(const Statement& statement) const {
@@ -131,6 +145,14 @@ struct CopyVisitor {
         return Assignment(
             std::make_unique<Expression>(std::visit(*this, *assignment.mLeft)),
             std::make_unique<Expression>(std::visit(*this, *assignment.mRight))
+        );
+    }
+
+    Expression operator()(const Crement& crement) const {
+        return Crement(
+            std::make_unique<Expression>(std::visit(*this, *crement.mVar)),
+            crement.mIncrement,
+            crement.mPost
         );
     }
     

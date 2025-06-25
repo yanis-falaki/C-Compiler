@@ -83,44 +83,67 @@ const lexer::LexItem& expectNoAdvance(lexer::LexType expectedLexType, lexer::Lex
     return actual;
 }
 
-// ------------------------------> parseConstant <------------------------------
-
-static ast::c::Constant parseConstant(lexer::LexList& lexList) {
-    const lexer::LexItem& lexConstant = expectAndAdvance(lexer::LexType::Constant, lexList);
-    return ast::c::Constant(std::stoi(std::string(lexConstant.mSV)));
-}
-
 // forward declaration
 static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence=0);
 
 // ------------------------------> parseFactor <------------------------------
 
 static ast::c::Expression parseFactor(lexer::LexList& lexList) {
-    const lexer::LexItem& currentToken = lexList.current();
+    const lexer::LexItem& currentToken = lexList.consume();
 
+    ast::c::Expression expression = ast::c::Constant(0);
+
+    // Constant
     if (currentToken.mLexType == lexer::LexType::Constant)
-        return parseConstant(lexList);
+        return ast::c::Constant(std::stoi(std::string(currentToken.mSV)));
 
+    // Unary Op
     else if (lexer::is_lextype_unary_op(currentToken.mLexType)) {
-        lexList.advance();
         auto factor = std::make_unique<ast::c::Expression>(parseFactor(lexList));
-        return ast::c::Unary(lextype_to_unary_op(currentToken.mLexType), std::move(factor));
+        expression = ast::c::Unary(lextype_to_unary_op(currentToken.mLexType), std::move(factor));
     }
 
+    // Open parenthesis
     else if (currentToken.mLexType == lexer::LexType::Open_Parenthesis) {
-        lexList.advance();
         auto innerExpression = parseExpression(lexList);
         expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
-        return innerExpression;
+        expression = std::move(innerExpression);
     }
 
+    // Variable
     else if (currentToken.mLexType == lexer::LexType::Identifier) {
-        lexList.advance();
-        return ast::c::Variable(std::string(currentToken.mSV));
+        expression = ast::c::Variable(std::string(currentToken.mSV));
     }
 
-    std::string errorString = std::format("Malformed factor, got: {}", currentToken.mSV);
-    throw std::runtime_error(errorString);
+    // Crement
+    else if ((currentToken.mLexType == lexer::LexType::Increment)
+            || (currentToken.mLexType == lexer::LexType::Decrement)
+    ) {
+        expression = ast::c::Crement(
+            std::make_unique<ast::c::Expression>(parseFactor(lexList)),
+            (currentToken.mLexType == lexer::LexType::Increment),
+            false // Post always false as the crement operator was found before the factor
+        );
+    }
+
+    else {
+        std::string errorString = std::format("Malformed factor, got: {}", currentToken.mSV);
+        throw std::runtime_error(errorString);
+    }
+
+    // Check for post increment/decrement
+    if (lexList.current().mLexType == lexer::LexType::Increment ||
+        lexList.current().mLexType == lexer::LexType::Decrement
+    ) {
+        expression = ast::c::Crement(
+            std::make_unique<ast::c::Expression>(std::move(expression)),
+            (lexList.current().mLexType == lexer::LexType::Increment),
+            true // Post always true as the crement operator was found after the factor
+        );
+        lexList.advance();
+    }
+
+    return expression;
 }
 
 // ------------------------------> parseExpression <------------------------------

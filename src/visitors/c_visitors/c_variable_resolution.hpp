@@ -51,6 +51,13 @@ struct VariableResolution {
         std::visit(*this, *assignment.mRight);
     }
 
+    void operator()(Crement& crement) const {
+        if (!std::holds_alternative<Variable>(*crement.mVar))
+            throw std::runtime_error("Assignment contains invalid lvalue!");
+        
+        std::visit(*this, *crement.mVar);
+    }
+
     // Statement visitors
     void operator()(Statement& statement) const {
         std::visit(*this, statement);

@@ -15,6 +15,7 @@ enum class LexType {
     BitwiseComplement,
     Negation,
     Decrement,
+    Increment,
     Int,
     Void,
     Return,
@@ -68,6 +69,7 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
+        case LexType::Increment:                return "++";
         case LexType::Open_Parenthesis:         return "(";
         case LexType::Close_Parenthesis:        return ")";
         case LexType::Open_Brace:               return "{";

@@ -81,7 +81,8 @@ struct Unary;
 struct Binary;
 struct Assignment;
 struct Variable;
-using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment>;
+struct Crement;
+using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment, Crement>;
 
 struct Constant {
     int mValue;
@@ -113,6 +114,16 @@ struct Assignment {
     Assignment(std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
     :   mLeft(std::move(left)),
         mRight(std::move(right)) {}
+};
+
+struct Crement {
+    std::unique_ptr<Expression> mVar;
+    bool mIncrement;
+    bool mPost;
+    Crement(std::unique_ptr<Expression> var, bool increment, bool post)
+    :   mVar(std::move(var)),
+        mIncrement(increment),
+        mPost(post) {}
 };
 
 // ------------------------------> Statements <------------------------------

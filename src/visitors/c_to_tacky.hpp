@@ -148,6 +148,41 @@ struct CToTacky {
         return var;
     }
 
+    ast::tacky::Val operator()(const ast::c::Crement& crement) {
+        // Get variable
+        ast::tacky::Var var(std::get<ast::c::Variable>(*crement.mVar).mIdentifier);
+
+        ast::tacky::BinaryOperator op;
+        if (crement.mIncrement)
+            op = ast::tacky::BinaryOperator::Add;
+        else
+            op = ast::tacky::BinaryOperator::Subtract;
+
+        if (crement.mPost) {
+            auto tmp = makeTemporaryRegister();
+            // Copy value to tmp
+            mInstructions.emplace_back(ast::tacky::Copy(var, tmp));
+            // increment/decrement var.
+            mInstructions.emplace_back(ast::tacky::Binary(
+                op,
+                var,
+                ast::tacky::Constant(1),
+                var
+            ));
+            return tmp;
+        }
+        else {
+            // increment/decrement var.
+            mInstructions.emplace_back(ast::tacky::Binary(
+                op,
+                var,
+                ast::tacky::Constant(1),
+                var
+            ));
+            return var;
+        }
+    }
+
     // Statement visitors
     void operator()(const ast::c::Statement& statement){
         std::visit(*this, statement);
