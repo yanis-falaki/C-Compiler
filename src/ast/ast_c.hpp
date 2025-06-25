@@ -82,7 +82,8 @@ struct Binary;
 struct Assignment;
 struct Variable;
 struct Crement;
-using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment, Crement>;
+struct Conditional;
+using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment, Crement, Conditional>;
 
 struct Constant {
     int mValue;
@@ -124,6 +125,18 @@ struct Crement {
     :   mVar(std::move(var)),
         mIncrement(increment),
         mPost(post) {}
+};
+
+struct Conditional {
+    std::unique_ptr<Expression> mCondition;
+    std::unique_ptr<Expression> mThen;
+    std::unique_ptr<Expression> mElse;
+    Conditional(std::unique_ptr<Expression> conditionExpr,
+                std::unique_ptr<Expression> thenExpr,
+                std::unique_ptr<Expression> elseExpr)
+    :   mCondition(std::move(conditionExpr)),
+        mThen(std::move(thenExpr)),
+        mElse(std::move(elseExpr)) {}
 };
 
 // ------------------------------> Statements <------------------------------

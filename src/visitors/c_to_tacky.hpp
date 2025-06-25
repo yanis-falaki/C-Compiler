@@ -183,6 +183,10 @@ struct CToTacky {
         }
     }
 
+    ast::tacky::Val operator()(const ast::c::Conditional& conditional) {
+        throw std::runtime_error("Conditional Expression conversion to tacky not yet implemented");
+    }
+
     // Statement visitors
     void operator()(const ast::c::Statement& statement){
         std::visit(*this, statement);

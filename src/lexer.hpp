@@ -165,6 +165,7 @@ inline bool is_lextype_binary_op(LexType type) {
         case LexType::Greater_Than:
         case LexType::Less_Or_Equal:
         case LexType::Greater_Or_Equal:
+        case LexType::Question_Mark:
             return true;
         default:
             return false;
@@ -220,6 +221,8 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
     
         case LexType::Logical_AND:        return 10;
         case LexType::Logical_OR:         return 5;
+
+        case LexType::Question_Mark:      return 3;
         
         case LexType::Assignment:         return 1;
         case LexType::Plus_Equal:         return 1;

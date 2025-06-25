@@ -65,6 +65,16 @@ struct PrintVisitor {
 
         std::visit(PrintVisitor(depth+1), *crement.mVar);
     }
+
+    void operator()(const Conditional& conditional) const {
+        std::cout << indent() << "Conditional Expression:\n";
+        std::cout << indent() << "  If:\n";
+        std::visit(PrintVisitor(depth+2), *conditional.mCondition);
+        std::cout << indent() << "  Then:\n";
+        std::visit(PrintVisitor(depth+2), *conditional.mThen);
+        std::cout << indent() << "  Else:\n";
+        std::visit(PrintVisitor(depth+2), *conditional.mElse);
+    }
     
     // Statement visitors
     void operator()(const Statement& statement) const {
@@ -82,13 +92,15 @@ struct PrintVisitor {
     }
 
     void operator()(const If& ifStatement) const {
-        std::cout << indent() << "If:\n";
-        std::visit(PrintVisitor(depth+1), ifStatement.mCondition);
-        std::cout << indent() << "Then:\n";
-        std::visit(PrintVisitor(depth+1), *ifStatement.mThen);
+        std::cout << indent() << "If Statement:\n";
+        std::cout << indent() << "  If:\n";
+        std::visit(PrintVisitor(depth+2), ifStatement.mCondition);
+        std::cout << indent() << "  Then:\n";
+        std::visit(PrintVisitor(depth+2), *ifStatement.mThen);
+
         if (ifStatement.mElse.has_value()) {
-            std::cout << indent() << "Else:\n";
-            std::visit(PrintVisitor(depth+1), *ifStatement.mElse.value());
+            std::cout << indent() << "  Else:\n";
+            std::visit(PrintVisitor(depth+2), *ifStatement.mElse.value());
         }
     }
 
@@ -164,6 +176,14 @@ struct CopyVisitor {
             std::make_unique<Expression>(std::visit(*this, *crement.mVar)),
             crement.mIncrement,
             crement.mPost
+        );
+    }
+
+    Expression operator()(const Conditional& conditional) const {
+        return Conditional(
+            std::make_unique<Expression>(std::visit(*this, *conditional.mCondition)),
+            std::make_unique<Expression>(std::visit(*this, *conditional.mThen)),
+            std::make_unique<Expression>(std::visit(*this, *conditional.mElse))
         );
     }
     

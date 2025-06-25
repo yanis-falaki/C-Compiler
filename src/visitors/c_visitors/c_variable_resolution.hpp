@@ -58,6 +58,12 @@ struct VariableResolution {
         std::visit(*this, *crement.mVar);
     }
 
+    void operator()(Conditional& conditional) const {
+        std::visit(*this, *conditional.mCondition);
+        std::visit(*this, *conditional.mThen);
+        std::visit(*this, *conditional.mElse);
+    }
+
     // Statement visitors
     void operator()(Statement& statement) const {
         std::visit(*this, statement);

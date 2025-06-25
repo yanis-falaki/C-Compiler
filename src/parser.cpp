@@ -155,9 +155,11 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
     // Check if operator is a binary op and is above minimum precendence level
     while (lexer::is_lextype_binary_op(currentToken->mLexType)
         && lexer::binary_op_precedence(currentToken->mLexType) >= minPrecedence) {
+
+        lexList.advance();
         
+        // Assignment type operator
         if (lexer::is_assignment(currentToken->mLexType)) {
-            lexList.advance();
             auto right = std::make_unique<ast::c::Expression>(
                 parseExpression(lexList, lexer::binary_op_precedence(lexer::LexType::Assignment)));
             
@@ -178,14 +180,27 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
                             std::make_unique<ast::c::Expression>(std::move(expression)),  
                             std::move(right))));
             }
-            break;
         }
-
-        auto op = lextype_to_binary_op(currentToken->mLexType);
-        lexList.advance();
-        auto right = std::make_unique<ast::c::Expression>(parseExpression(lexList, lexer::binary_op_precedence(currentToken->mLexType)+1));
-        expression = ast::c::Binary(op, std::make_unique<ast::c::Expression>(std::move(expression)), 
-                                  std::move(right));
+        // Conditional expression
+        else if (currentToken->mLexType == lexer::LexType::Question_Mark) {
+            auto middleExpr = std::make_unique<ast::c::Expression>(parseExpression(lexList));
+            expectAndAdvance(lexer::LexType::Colon, lexList);
+            auto rightExpr = std::make_unique<ast::c::Expression>(
+                parseExpression(lexList, lexer::binary_op_precedence(currentToken->mLexType))
+            );
+            expression = ast::c::Conditional(
+                std::make_unique<ast::c::Expression>(std::move(expression)),
+                std::move(middleExpr),
+                std::move(rightExpr)
+            );
+        }
+        // Regular binary op
+        else {
+            auto op = lextype_to_binary_op(currentToken->mLexType);
+            auto right = std::make_unique<ast::c::Expression>(parseExpression(lexList, lexer::binary_op_precedence(currentToken->mLexType)+1));
+            expression = ast::c::Binary(op, std::make_unique<ast::c::Expression>(std::move(expression)), 
+                                      std::move(right));
+        }
         currentToken = &lexList.current();
     }
 
