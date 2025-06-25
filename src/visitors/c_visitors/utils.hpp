@@ -87,20 +87,20 @@ struct PrintVisitor {
     }
 
     void operator()(const ExpressionStatement& es) const {
-        std::cout << indent() << "Expression Statement:\n";
-        std::visit(PrintVisitor(depth+1), es.mExpr);
+        //std::cout << indent() << "Expression Statement:\n";
+        //std::visit(PrintVisitor(depth+1), es.mExpr);
+        std::visit(PrintVisitor(depth), es.mExpr);
     }
 
     void operator()(const If& ifStatement) const {
-        std::cout << indent() << "If Statement:\n";
-        std::cout << indent() << "  If:\n";
-        std::visit(PrintVisitor(depth+2), ifStatement.mCondition);
-        std::cout << indent() << "  Then:\n";
-        std::visit(PrintVisitor(depth+2), *ifStatement.mThen);
+        std::cout << indent() << "If:\n";
+        std::visit(PrintVisitor(depth+1), ifStatement.mCondition);
+        std::cout << indent() << "Then:\n";
+        std::visit(PrintVisitor(depth+1), *ifStatement.mThen);
 
         if (ifStatement.mElse.has_value()) {
-            std::cout << indent() << "  Else:\n";
-            std::visit(PrintVisitor(depth+2), *ifStatement.mElse.value());
+            std::cout << indent() << "Else:\n";
+            std::visit(PrintVisitor(depth+1), *ifStatement.mElse.value());
         }
     }
 

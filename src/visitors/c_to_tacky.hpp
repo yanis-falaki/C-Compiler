@@ -16,7 +16,7 @@ inline ast::tacky::Var makeTemporaryRegister() {
     return std::format("tmp.{}", tmpRegisterNum++);;
 }
 
-// ------------------------------> Helper function for logical AND and OR expressions <------------------------------
+// ------------------------------> Helper functions for labels <------------------------------
 
 inline std::pair<ast::tacky::Label, ast::tacky::Label> makeAndLabels() {
     static uint32_t andNum = 0;
@@ -31,6 +31,22 @@ inline std::pair<ast::tacky::Label, ast::tacky::Label> makeOrLabels() {
     return {
         std::format("or_true.{}", orNum),
         std::format("or_end.{}", orNum++)
+    };
+}
+
+inline std::pair<ast::tacky::Label, ast::tacky::Label> makeConditionalLabels() {
+    static uint32_t conditionalNum = 0;
+    return {
+        std::format("cond_expr2.{}", conditionalNum),
+        std::format("cond_end.{}", conditionalNum++)
+    };
+}
+
+inline std::pair<ast::tacky::Label, ast::tacky::Label> makeIfLabels() {
+    static uint32_t ifNum = 0;
+    return {
+        std::format("if_else.{}", ifNum),
+        std::format("if_end.{}", ifNum++)
     };
 }
 
@@ -184,7 +200,28 @@ struct CToTacky {
     }
 
     ast::tacky::Val operator()(const ast::c::Conditional& conditional) {
-        throw std::runtime_error("Conditional Expression conversion to tacky not yet implemented");
+        auto [expr2Label, endLabel] = makeConditionalLabels();
+        auto result = makeTemporaryRegister();
+
+        // Conditional
+        auto conditionResult = std::visit(*this, *conditional.mCondition);
+        mInstructions.emplace_back(ast::tacky::JumpIfZero(conditionResult, expr2Label.mIdentifier));
+
+        // Expression 1
+        auto v1 = std::visit(*this, *conditional.mThen);
+        mInstructions.emplace_back(ast::tacky::Copy(v1, result));
+        mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
+
+        // Expression 2
+        mInstructions.emplace_back(expr2Label);
+        auto v2 = std::visit(*this, *conditional.mElse);
+        mInstructions.emplace_back(ast::tacky::Copy(v2, result));
+
+        // End Label
+        mInstructions.emplace_back(endLabel);
+
+        // Result stores value of evaluated expression
+        return result;
     }
 
     // Statement visitors
@@ -201,8 +238,23 @@ struct CToTacky {
         std::visit(*this, es.mExpr);
     }
 
-    void operator()(const ast::c::If& ifstmt) {
-        throw std::runtime_error("If conversion to tacky not yet implemented");
+    void operator()(const ast::c::If& ifStmt) {
+        auto [elseLabel, endLabel] = makeIfLabels();
+
+        ast::tacky::Val conditionResult = std::visit(*this, ifStmt.mCondition);
+        if (!ifStmt.mElse.has_value()) {
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(conditionResult, endLabel.mIdentifier));
+            std::visit(*this, *ifStmt.mThen);
+        }
+        else {
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(conditionResult, elseLabel.mIdentifier));
+            std::visit(*this, *ifStmt.mThen);
+            mInstructions.emplace_back(ast::tacky::Jump(endLabel.mIdentifier));
+            mInstructions.emplace_back(elseLabel);
+            std::visit(*this, *ifStmt.mElse.value());
+        }
+
+        mInstructions.emplace_back(endLabel);
     }
 
     void operator()(const ast::c::NullStatement& null) {}
