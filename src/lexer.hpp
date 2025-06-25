@@ -19,11 +19,15 @@ enum class LexType {
     Int,
     Void,
     Return,
+    If,
+    Else,
     Open_Parenthesis,
     Close_Parenthesis,
     Open_Brace,
     Close_Brace,
     Semicolon,
+    Colon,
+    Question_Mark,
     Plus,
     Asterisk,
     Forward_Slash,
@@ -66,6 +70,8 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Int:                      return "int";
         case LexType::Void:                     return "void";
         case LexType::Return:                   return "return";
+        case LexType::If:                       return "if";
+        case LexType::Else:                     return "else";
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
@@ -75,6 +81,8 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Open_Brace:               return "{";
         case LexType::Close_Brace:              return "}";
         case LexType::Semicolon:                return ";";
+        case LexType::Colon:                    return ":";
+        case LexType::Question_Mark:            return "?";
         case LexType::Plus:                     return "+";
         case LexType::Asterisk:                 return "*";
         case LexType::Forward_Slash:            return "/";
@@ -107,6 +115,16 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
+
+// ------------------------------> KEYWORD_MAP <------------------------------
+
+constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
+    std::make_pair("int", LexType::Int),
+    std::make_pair("void", LexType::Void),
+    std::make_pair("return", LexType::Return),
+    std::make_pair("if", LexType::If),
+    std::make_pair("else", LexType::Else),
+};
 
 // ------------------------------> is_unary_op <------------------------------
 
@@ -252,7 +270,7 @@ constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> 
 
 constexpr auto SORTED_SYMBOL_MAPPING = generateSortedSymbolMapping();
 
-// ------------------------------> LexItem and KEYWORD_MAP <------------------------------
+// ------------------------------> LexItem <------------------------------
 
 struct LexItem {
     LexType mLexType;
@@ -312,13 +330,6 @@ public:
         }
     }
 };
-
-constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
-    std::make_pair("int", LexType::Int),
-    std::make_pair("void", LexType::Void),
-    std::make_pair("return", LexType::Return),
-};
-
 
 // ------------------------------> Function Prototypes <------------------------------
 
