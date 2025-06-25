@@ -130,10 +130,10 @@ struct Crement {
 
 // forward declarations
 struct Return;
-struct If;
 struct ExpressionStatement;
+struct If;
 struct NullStatement;
-using Statement = std::variant<Return, ExpressionStatement, NullStatement>;
+using Statement = std::variant<Return, ExpressionStatement, If, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -143,6 +143,21 @@ struct Return {
 struct ExpressionStatement {
     Expression mExpr;
     ExpressionStatement(Expression expr) : mExpr(std::move(expr)) {}
+};
+
+struct If {
+    Expression mCondition;
+    std::unique_ptr<Statement> mThen;
+    std::optional<std::unique_ptr<Statement>> mElse;
+    If(Expression condition, std::unique_ptr<Statement> then, std::optional<std::unique_ptr<Statement>> es)
+    :   mCondition(std::move(condition)),
+        mThen(std::move(then)),
+        mElse(std::move(es)) {}
+    
+    If(Expression condition, std::unique_ptr<Statement> then)
+    :   mCondition(std::move(condition)),
+        mThen(std::move(then)),
+        mElse(std::nullopt) {}
 };
 
 struct NullStatement {};

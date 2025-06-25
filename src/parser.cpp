@@ -202,6 +202,27 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
         expectAndAdvance(lexer::LexType::Semicolon, lexList);
         return returnObject;
     }
+    // If Statement
+    else if (lexList.current().mLexType == lexer::LexType::If) {
+        std::optional<std::unique_ptr<ast::c::Statement>> elseStmt = std::nullopt;
+
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
+        auto condition = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        auto then = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+
+        if (lexList.current().mLexType == lexer::LexType::Else) {
+            lexList.advance();
+            elseStmt = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        };
+
+        return ast::c::If(
+            std::move(condition),
+            std::move(then),
+            std::move(elseStmt)
+        );
+    }
     // Null Statement
     else if (lexList.current().mLexType == lexer::LexType::Semicolon) {
         lexList.advance();

@@ -81,6 +81,17 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+1), es.mExpr);
     }
 
+    void operator()(const If& ifStatement) const {
+        std::cout << indent() << "If:\n";
+        std::visit(PrintVisitor(depth+1), ifStatement.mCondition);
+        std::cout << indent() << "Then:\n";
+        std::visit(PrintVisitor(depth+1), *ifStatement.mThen);
+        if (ifStatement.mElse.has_value()) {
+            std::cout << indent() << "Else:\n";
+            std::visit(PrintVisitor(depth+1), *ifStatement.mElse.value());
+        }
+    }
+
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
@@ -167,6 +178,16 @@ struct CopyVisitor {
 
     Statement operator()(const ExpressionStatement& es) const {
         return ExpressionStatement(std::visit(*this, es.mExpr));
+    }
+
+    Statement operator()(const If& ifStatement) const {
+        return If(
+            std::visit(*this, ifStatement.mCondition),
+            std::make_unique<Statement>(std::visit(*this, *ifStatement.mThen)),
+            ifStatement.mElse.has_value()
+                ? std::make_unique<Statement>(std::visit(*this, *ifStatement.mElse.value()))
+                : std::optional<std::unique_ptr<Statement>>(std::nullopt)
+        );
     }
 
     Statement operator()(const NullStatement& null) const {

@@ -18,6 +18,7 @@ exp = Constant(int)
     | Var(identifier)
     | Assignment(exp, exp)
     | Crement(exp, bool post, bool increment)
+    | If(exp condition, statement then, statement? else)
 
 unary_operator = Complement | Negate | Logical_Not
 
@@ -38,7 +39,10 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 <declaration> ::= "int" <identifier> ["=" <exp>] ";"
 
-<statement> ::= "return" <exp> ";" | <exp> ";" | ";"
+<statement> ::= "return" <exp> ";" 
+               | <exp> ";"
+               | "if" "(" <exp> ")" <statement> ["else" <statement>]
+               | ";"
 
 <exp> ::= <factor> | <exp> <binop> <exp>
 

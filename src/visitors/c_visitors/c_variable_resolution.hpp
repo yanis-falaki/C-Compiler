@@ -71,6 +71,13 @@ struct VariableResolution {
         std::visit(*this, es.mExpr);
     }
 
+    void operator()(If& ifStmt) const {
+        std::visit(*this, ifStmt.mCondition);
+        std::visit(*this, *ifStmt.mThen);
+        if (ifStmt.mElse.has_value())
+            std::visit(*this, *ifStmt.mElse.value());
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Declaration visitor

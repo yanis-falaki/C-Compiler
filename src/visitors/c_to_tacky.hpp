@@ -197,6 +197,10 @@ struct CToTacky {
         std::visit(*this, es.mExpr);
     }
 
+    void operator()(const ast::c::If& ifstmt) {
+        throw std::runtime_error("If conversion to tacky not yet implemented");
+    }
+
     void operator()(const ast::c::NullStatement& null) {}
 
     // Declaration
