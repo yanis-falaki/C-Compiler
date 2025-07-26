@@ -22,6 +22,11 @@ enum class LexType {
     If,
     Else,
     Go_To,
+    Do,
+    While,
+    For,
+    Break,
+    Continue,
     Open_Parenthesis,
     Close_Parenthesis,
     Open_Brace,
@@ -74,6 +79,11 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::If:                       return "if";
         case LexType::Else:                     return "else";
         case LexType::Go_To:                    return "goto";
+        case LexType::Do:                       return "do";
+        case LexType::While:                    return "while";
+        case LexType::For:                      return "for";
+        case LexType::Break:                    return "break";
+        case LexType::Continue:                 return "continue";
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
@@ -126,7 +136,12 @@ constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
     std::make_pair("return", LexType::Return),
     std::make_pair("if", LexType::If),
     std::make_pair("else", LexType::Else),
-    std::make_pair("goto", LexType::Go_To)
+    std::make_pair("goto", LexType::Go_To),
+    std::make_pair("do", LexType::Do),
+    std::make_pair("while", LexType::While),
+    std::make_pair("for", LexType::For),
+    std::make_pair("break", LexType::Break),
+    std::make_pair("continue", LexType::Continue)
 };
 
 // ------------------------------> is_unary_op <------------------------------
@@ -245,7 +260,7 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
 // ------------------------------> Symbols to Check <------------------------------
 
 // arraySize is length of enums - types we shouldn't check for.
-constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-8;
+constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-13;
 
 constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> generateSortedSymbolMapping() {
     std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> sortedSymbols{};
@@ -261,7 +276,12 @@ constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> 
             lexType == LexType::Return ||
             lexType == LexType::If ||
             lexType == LexType::Else ||
-            lexType == LexType::Go_To ) {
+            lexType == LexType::Go_To ||
+            lexType == LexType::Do ||
+            lexType == LexType::While ||
+            lexType == LexType::For ||
+            lexType == LexType::Break ||
+            lexType == LexType::Continue) {
             continue;
         }
 
