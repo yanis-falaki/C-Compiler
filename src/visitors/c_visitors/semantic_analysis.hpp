@@ -25,16 +25,28 @@ inline std::string makeUniqueVarName(const std::string& varName) {
 
 struct VariableResolution {
 
-    std::unordered_map<std::string, std::string> mMap;
+    std::vector<std::unordered_map<std::string, std::string>> mScopes;
+    std::vector<std::unordered_set<std::string>> mVarsDeclaredInScope;
 
+// helper methods
+private:
+    auto& getCurrentScope() { return mScopes.back(); }
+    const auto& getCurrentScope() const { return mScopes.back(); }
+    
+    auto& getCurrentDeclared() { return mVarsDeclaredInScope.back(); }
+    const auto& getCurrentDeclared() const { return mVarsDeclaredInScope.back(); }
+
+public:
     // Expression visitors
     void operator()(const Constant& constant) const {}
 
     void operator()(Variable& variable) const {
-        if (!mMap.contains(variable.mIdentifier))
+        auto& currentScope = getCurrentScope();
+        if (!currentScope.contains(variable.mIdentifier)) {
             throw std::runtime_error(std::format("Variable {} is used before it is declared!", variable.mIdentifier));
+        }
         
-        variable.mIdentifier = mMap.at(variable.mIdentifier);
+        variable.mIdentifier = currentScope.at(variable.mIdentifier);
     }
 
     void operator()(Unary& unary) const {
@@ -101,11 +113,20 @@ struct VariableResolution {
 
     // Declaration visitor
     void operator()(Declaration& declaration) {
-        if (mMap.contains(declaration.mIdentifier))
-            throw std::runtime_error(std::format("Variable {} has already been declared!", declaration.mIdentifier));
+        std::string variableName = declaration.mIdentifier;
+        auto& currentScope = getCurrentScope();
+        auto& currentDeclared = getCurrentDeclared();
 
-        std::string uniqueName = makeUniqueVarName(declaration.mIdentifier);
-        mMap.emplace(declaration.mIdentifier, uniqueName);
+        if (currentScope.contains(variableName) && currentDeclared.contains(variableName)) {
+            std::cout << currentScope.contains(variableName) << std::endl;
+            std::cout << currentDeclared.contains(variableName) << std::endl;
+            throw std::runtime_error(std::format("Variable {} has already been declared!", variableName));
+        }
+
+        currentDeclared.insert(variableName);
+
+        std::string uniqueName = makeUniqueVarName(variableName);
+        currentScope.insert_or_assign(variableName, uniqueName);
 
         // Replace declaration identifier with new name.
         declaration.mIdentifier = uniqueName;
@@ -116,9 +137,22 @@ struct VariableResolution {
     }
 
     void operator()(Block& block) {
+
+        // Create scope
+        if (mScopes.size() <= 0)
+            mScopes.push_back(std::unordered_map<std::string, std::string>());
+        else
+            mScopes.push_back(getCurrentScope());
+        
+        mVarsDeclaredInScope.push_back(std::unordered_set<std::string>());
+
         for (BlockItem& blockItem : block.mItems) {
             std::visit(*this, blockItem);
         }
+
+        // Exit scope
+        mScopes.pop_back();
+        mVarsDeclaredInScope.pop_back();
     }
 
     // Function visitor
