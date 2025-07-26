@@ -147,8 +147,9 @@ struct ExpressionStatement;
 struct If;
 struct GoTo;
 struct LabelledStatement;
+struct CompoundStatement;
 struct NullStatement;
-using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, NullStatement>;
+using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, CompoundStatement, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -188,6 +189,12 @@ struct LabelledStatement {
         mStatement(std::move(statement)) {}
 };
 
+struct Block;
+struct CompoundStatement {
+    std::unique_ptr<Block> mCompound;
+    CompoundStatement(std::unique_ptr<Block> compound) : mCompound(std::move(compound)) {}
+};
+
 struct NullStatement {};
 
 // ------------------------------> Declaration <------------------------------
@@ -210,16 +217,22 @@ struct Declaration {
 
 using BlockItem = std::variant<Declaration, Statement>;
 
+struct Block {
+    std::vector<BlockItem> mItems;
+
+    Block(std::vector<BlockItem> item) : mItems(std::move(item)) {}
+};
+
 // ------------------------------> Function Definition <------------------------------
 
 struct Function {
     std::optional<std::string> mIdentifier;
-    std::vector<BlockItem> mBody;
+    Block mBody;
 
-    Function(std::optional<std::string> identifier, std::vector<BlockItem> body)
+    Function(std::optional<std::string> identifier, Block body)
         : mIdentifier(identifier), mBody(std::move(body)) {}
 
-    Function(std::vector<BlockItem> body)
+    Function(Block body)
         : mIdentifier(std::nullopt), mBody(std::move(body)) {}
 };
 

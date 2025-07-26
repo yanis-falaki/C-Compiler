@@ -209,6 +209,9 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
 
 // ------------------------------> parseStatement <------------------------------
 
+// forward declaration
+static ast::c::Block parseBlock(lexer::LexList& lexList);
+
 static ast::c::Statement parseStatement(lexer::LexList& lexList) {
     auto currentToken = lexList.current();
 
@@ -260,6 +263,10 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
             std::move(statement)
         );
     }
+    // Compound Statment
+    else if (currentToken.mLexType == lexer::LexType::Open_Brace) {
+        return ast::c::CompoundStatement(std::make_unique<ast::c::Block>(parseBlock(lexList)));
+    }
     // Null Statement
     else if (currentToken.mLexType == lexer::LexType::Semicolon) {
         lexList.advance();
@@ -308,6 +315,23 @@ static ast::c::BlockItem parseBlockItem(lexer::LexList& lexList) {
     else return parseStatement(lexList);
 }
 
+// ------------------------------> parseBlock <------------------------------
+
+static ast::c::Block parseBlock(lexer::LexList& lexList) {
+    // Opening brace
+    expectAndAdvance(lexer::LexType::Open_Brace, lexList);
+
+    std::vector<ast::c::BlockItem> blockItems;
+    while (lexList.current().mLexType != lexer::LexType::Close_Brace) {
+        auto nextBlockItem = parseBlockItem(lexList);
+        blockItems.push_back(std::move(nextBlockItem));
+    }
+    
+    // We've seen the closing brace, move forward
+    lexList.advance();
+    return ast::c::Block(std::move(blockItems));
+}
+
 // ------------------------------> parseFunction <------------------------------
 
 static ast::c::Function parseFunction(lexer::LexList& lexList) {
@@ -322,19 +346,10 @@ static ast::c::Function parseFunction(lexer::LexList& lexList) {
     expectAndAdvance(lexer::LexType::Void, lexList);
     expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
 
-    // Opening brace
-    expectAndAdvance(lexer::LexType::Open_Brace, lexList);
+    // parse block
+    auto block = parseBlock(lexList);
 
-    /*              END Function Preamble              */
-
-    std::vector<ast::c::BlockItem> functionBody;
-    while (lexList.current().mLexType != lexer::LexType::Close_Brace) {
-        auto nextBlockItem = parseBlockItem(lexList);
-        functionBody.push_back(std::move(nextBlockItem));
-    }
-
-    lexList.advance();
-    return ast::c::Function(std::string(lexIdentifier.mSV), std::move(functionBody));
+    return ast::c::Function(std::string(lexIdentifier.mSV), std::move(block));
 }
 
 // ------------------------------> parseProgram <------------------------------

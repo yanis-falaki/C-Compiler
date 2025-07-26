@@ -266,6 +266,10 @@ struct CToTacky {
         std::visit(*this, *labelledStmt.mStatement);
     }
 
+    void operator()(const ast::c::CompoundStatement& compoundStmt) {
+        (*this)(*compoundStmt.mCompound);
+    }
+
     void operator()(const ast::c::NullStatement& null) {}
 
     // Declaration
@@ -283,11 +287,16 @@ struct CToTacky {
         std::visit(*this, blockItem);
     }
 
-    // Function visitor
-    ast::tacky::Function operator()(const ast::c::Function& functionNode) {
-        for (const auto& blockItem : functionNode.mBody) {
+    // Block
+    void operator()(const ast::c::Block& block) {
+        for (const auto& blockItem : block.mItems) {
             std::visit(*this, blockItem);
         }
+    }
+
+    // Function visitor
+    ast::tacky::Function operator()(const ast::c::Function& functionNode) {
+        (*this)(functionNode.mBody);
         mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
 
         if (functionNode.mIdentifier.has_value())

@@ -113,6 +113,11 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+1), *labelledStmt.mStatement);
     }
 
+    void operator()(const CompoundStatement& compoundStmt) const {
+        std::cout << indent() << "Compound Statement: " << std::endl;
+        PrintVisitor(depth+1)(*(compoundStmt.mCompound));
+    }
+
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
@@ -126,6 +131,13 @@ struct PrintVisitor {
         }
     }
 
+    // Block
+    void operator()(const Block& block) const {
+        for (const auto& blockItem : block.mItems){
+            std::visit(PrintVisitor(depth+1), blockItem);
+        }
+    }
+
     // Function visitor
     void operator()(const Function& func) const {
         std::string indent = std::string(depth * 2, ' ');
@@ -134,9 +146,7 @@ struct PrintVisitor {
         } else {
             std::cout << indent << "Function:" << std::endl;
         }
-        for (const auto& blockItem : func.mBody){
-            std::visit(PrintVisitor(depth+1), blockItem);
-        }
+        (PrintVisitor(depth+1))(func.mBody);
     }
 
     // Program visitor
@@ -230,6 +240,12 @@ struct CopyVisitor {
         );
     }
 
+    Statement operator()(const CompoundStatement& compoundStmt) const {
+        return CompoundStatement(
+            std::make_unique<Block>((*this)(*compoundStmt.mCompound))
+        );
+    }
+
     Statement operator()(const NullStatement& null) const {
         return NullStatement();
     }
@@ -242,16 +258,22 @@ struct CopyVisitor {
             return Declaration(declaration.mIdentifier);
     }
 
+    // Block
+    Block operator()(const Block& block) const {
+        std::vector<BlockItem> blockItems;
+        blockItems.reserve(block.mItems.size()); // Reserve space instead of resize
+        
+        for (const auto& blockItem : block.mItems) {
+            blockItems.emplace_back(std::visit(*this, blockItem));
+        }
+
+        return Block(std::move(blockItems));
+    }
+
     // Function visitor
     Function operator()(const Function& func) const {
-        std::vector<BlockItem> funcBody;
-        funcBody.reserve(func.mBody.size()); // Reserve space instead of resize
-        
-        for (const auto& blockItem : func.mBody) {
-            funcBody.emplace_back(std::visit(*this, blockItem));
-        }
-    
-        return Function(func.mIdentifier, std::move(funcBody));
+        Block body = (*this)(func.mBody);
+        return Function(func.mIdentifier, std::move(body));
     }
 
     // Program visitor

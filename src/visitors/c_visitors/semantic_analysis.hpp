@@ -68,7 +68,7 @@ struct VariableResolution {
     }
 
     // Statement visitors
-    void operator()(Statement& statement) const {
+    void operator()(Statement& statement) {
         std::visit(*this, statement);
     }
 
@@ -80,7 +80,7 @@ struct VariableResolution {
         std::visit(*this, es.mExpr);
     }
 
-    void operator()(If& ifStmt) const {
+    void operator()(If& ifStmt) {
         std::visit(*this, ifStmt.mCondition);
         std::visit(*this, *ifStmt.mThen);
         if (ifStmt.mElse.has_value())
@@ -89,8 +89,12 @@ struct VariableResolution {
 
     void operator()(GoTo& gotoStmt) const {}
 
-    void operator()(LabelledStatement& labelledStmt) const {
+    void operator()(LabelledStatement& labelledStmt) {
         std::visit(*this, *labelledStmt.mStatement);
+    }
+
+    void operator()(CompoundStatement& compoundStmt) {
+        (*this)(*compoundStmt.mCompound);
     }
 
     void operator()(const NullStatement& ns) const {}
@@ -111,11 +115,15 @@ struct VariableResolution {
             std::visit(*this, declaration.mExpr.value());
     }
 
-    // Function visitor
-    void operator()(Function& func) {
-        for (BlockItem& blockItem : func.mBody) {
+    void operator()(Block& block) {
+        for (BlockItem& blockItem : block.mItems) {
             std::visit(*this, blockItem);
         }
+    }
+
+    // Function visitor
+    void operator()(Function& func) {
+        (*this)(func.mBody);
     }
 
     // Program visitor
@@ -181,16 +189,25 @@ struct LabelResolution {
         std::visit(*this, *labelledStmt.mStatement);
     }
 
+    void operator()(CompoundStatement& compoundStmt) {
+        (*this)(*compoundStmt.mCompound);
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Declaration visitor
     void operator()(const Declaration& declaration) const {}
 
-    // Function visitor
-    void operator()(Function& func) {
-        for (BlockItem& blockItem : func.mBody) {
+    // Block visitor
+    void operator()(Block& block) {
+        for (BlockItem& blockItem : block.mItems) {
             std::visit(*this, blockItem);
         }
+    }
+
+    // Function visitor
+    void operator()(Function& func) {
+        (*this)(func.mBody);
         checkNeededLabelsInPresentLabels();
     }
 

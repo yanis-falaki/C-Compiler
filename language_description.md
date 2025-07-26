@@ -2,15 +2,21 @@
 ```
 program = Program(function_definition)
 
-function_definition = Function(identifier name, block_item* body)
+function_definition = Function(identifier name, block body)
 
 block_item = S(statement) | D(decleration)
 
-statement = Return(exp value)
-          | Expression(exp)
-          | Null
+block = Block(block_item*)
 
 declaration = Declaration(identifier name, exp? init)
+
+statement = Return(exp value)
+          | Expression(exp)
+          | If(exp condition, statement then, statement? else)
+          | GoTo(identifier target)
+          | Label(identifier, statement)
+          | Compound(block)
+          | Null
 
 exp = Constant(int)
     | Unary(unary_operator, exp)
@@ -18,10 +24,7 @@ exp = Constant(int)
     | Var(identifier)
     | Assignment(exp, exp)
     | Crement(exp, bool post, bool increment)
-    | If(exp condition, statement then, statement? else)
     | Conditional(exp condition, exp, exp)
-    | GoTo(identifier target)
-    | Label(identifier, statement)
 
 unary_operator = Complement | Negate | Logical_Not
 
@@ -36,9 +39,11 @@ binary_operator = Add | Subtract | Divide | Remainder
 ```
 <program> ::= <function>
 
-<function> ::= "int" <identifier> "(" "void" ")" "{" {<block-item>} "}"
+<function> ::= "int" <identifier> "(" "void" ")" <block>
 
 <block-item> ::= <statement> | <declaration>
+
+<block> ::= "{" {<block-item>} "}"
 
 <declaration> ::= "int" <identifier> ["=" <exp>] ";"
 
@@ -47,6 +52,7 @@ binary_operator = Add | Subtract | Divide | Remainder
                | "if" "(" <exp> ")" <statement> ["else" <statement>]
                | "goto" <identifier> ";"
                | <identifier> ":" <statement>
+               | <block>
                | ";"
 
 <exp> ::= <factor> | <exp> <binop> <exp> | <exp> "?" <exp> : <exp>
