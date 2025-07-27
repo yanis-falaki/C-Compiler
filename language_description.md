@@ -10,12 +10,19 @@ block = Block(block_item*)
 
 declaration = Declaration(identifier name, exp? init)
 
+for_init = InitDecl(declaration) | InitExp(exp?)
+
 statement = Return(exp value)
           | Expression(exp)
           | If(exp condition, statement then, statement? else)
           | GoTo(identifier target)
           | Label(identifier, statement)
           | Compound(block)
+          | Break(identifier label)
+          | Continue(identifier label)
+          | While(exp condition, statement body, identifier label)
+          | DoWhile(statement body, exp condition, identifier label)
+          | For(for_init init, exp? condition, exp? post, statement body)
           | Null
 
 exp = Constant(int)
@@ -47,12 +54,19 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 <declaration> ::= "int" <identifier> ["=" <exp>] ";"
 
+<for-init> ::= <declaration> | [exp] ";"
+
 <statement> ::= "return" <exp> ";" 
                | <exp> ";"
                | "if" "(" <exp> ")" <statement> ["else" <statement>]
                | "goto" <identifier> ";"
                | <identifier> ":" <statement>
                | <block>
+               | "break" ";"
+               | "continue" ";"
+               | "while" "(" <exp> ")" <statement>
+               | "do" <statement> "while" "(" <exp> ")" ";"
+               | "for" "(" <for-init> [<exp>] ";" [<exp>] ")" <statement>
                | ";"
 
 <exp> ::= <factor> | <exp> <binop> <exp> | <exp> "?" <exp> : <exp>
