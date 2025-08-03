@@ -83,8 +83,9 @@ const lexer::LexItem& expectNoAdvance(lexer::LexType expectedLexType, lexer::Lex
     return actual;
 }
 
-// forward declaration
+// forward declarations
 static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence=0);
+static ast::c::Declaration parseDeclaration(lexer::LexList& lexList);
 
 // ------------------------------> parseFactor <------------------------------
 
@@ -207,6 +208,19 @@ static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minP
     return expression;
 }
 
+// ------------------------------> parseOptionalExpression <------------------------------
+
+static std::optional<ast::c::Expression> parseOptionalExpression(lexer::LexType endingToken, lexer::LexList& lexList) {
+    if (lexList.current().mLexType == endingToken) {
+        lexList.advance();
+        return std::nullopt;
+    }
+
+    auto expression = parseExpression(lexList);
+    expectAndAdvance(endingToken, lexList);
+    return expression;
+}
+
 // ------------------------------> parseStatement <------------------------------
 
 // forward declaration
@@ -256,7 +270,7 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
     ) {
         std::string label(currentToken.mSV);
         lexList.advance();
-        expectAndAdvance(lexer::LexType::Colon, lexList);
+        lexList.advance();
         auto statement = std::make_unique<ast::c::Statement>(parseStatement(lexList));
         return ast::c::LabelledStatement(
             std::move(label),
@@ -266,6 +280,64 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
     // Compound Statment
     else if (currentToken.mLexType == lexer::LexType::Open_Brace) {
         return ast::c::CompoundStatement(std::make_unique<ast::c::Block>(parseBlock(lexList)));
+    }
+    // Break Statement
+    else if (currentToken.mLexType == lexer::LexType::Break) {
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return ast::c::Break("");
+    }
+    // Continue statement
+    else if (currentToken.mLexType == lexer::LexType::Continue) {
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return ast::c::Continue("");
+    }
+    // While Loop
+    else if (currentToken.mLexType == lexer::LexType::While) {
+        lexList.advance();
+        // Get condition expression
+        expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
+        ast::c::Expression condition = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        // Get statement
+        auto body = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+
+        return ast::c::While(std::move(condition), std::move(body), "");
+    }
+    // DoWhile loop
+    else if (currentToken.mLexType == lexer::LexType::Do) {
+        lexList.advance();
+        auto body = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        expectAndAdvance(lexer::LexType::While, lexList);
+        expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
+        ast::c::Expression condition = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+
+        return ast::c::DoWhile(std::move(body), std::move(condition), "");
+    }
+    // For loop
+    else if (currentToken.mLexType == lexer::LexType::For) {
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
+
+        // For init
+        ast::c::ForInit forInit = std::nullopt;
+
+        // check for declaration
+        if (lexList.current().mLexType == lexer::LexType::Int)
+            forInit = parseDeclaration(lexList);
+        else
+            forInit = parseOptionalExpression(lexer::LexType::Semicolon, lexList);
+        
+        auto condition = parseOptionalExpression(lexer::LexType::Semicolon, lexList);
+
+        auto postExpression = parseOptionalExpression(lexer::LexType::Close_Parenthesis, lexList);
+
+        auto statement = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+
+        return ast::c::For(std::move(forInit), std::move(condition), std::move(postExpression), std::move(statement), "");
     }
     // Null Statement
     else if (currentToken.mLexType == lexer::LexType::Semicolon) {

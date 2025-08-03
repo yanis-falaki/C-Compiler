@@ -139,6 +139,21 @@ struct Conditional {
         mElse(std::move(elseExpr)) {}
 };
 
+// ------------------------------> Declaration <------------------------------
+
+struct Declaration {
+    std::string mIdentifier;
+    std::optional<Expression> mExpr;
+
+    Declaration(std::string identifier, Expression expression)
+    :   mIdentifier(std::move(identifier)),
+        mExpr(std::move(expression)) {}
+
+    Declaration(std::string identifier) 
+    :   mIdentifier(std::move(identifier)), 
+        mExpr(std::nullopt) {}
+};
+
 // ------------------------------> Statements <------------------------------
 
 // forward declarations
@@ -149,7 +164,13 @@ struct GoTo;
 struct LabelledStatement;
 struct CompoundStatement;
 struct NullStatement;
-using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, CompoundStatement, NullStatement>;
+struct Break;
+struct Continue;
+struct While;
+struct DoWhile;
+struct For;
+using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, CompoundStatement,
+                               Break, Continue, While, DoWhile, For, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -195,25 +216,47 @@ struct CompoundStatement {
     CompoundStatement(std::unique_ptr<Block> compound) : mCompound(std::move(compound)) {}
 };
 
-struct NullStatement {};
-
-// ------------------------------> Declaration <------------------------------
-
-struct Declaration {
-    std::string mIdentifier;
-    std::optional<Expression> mExpr;
-
-    Declaration(std::string identifier, Expression expression)
-    :   mIdentifier(std::move(identifier)),
-        mExpr(std::move(expression)) {}
-
-    Declaration(std::string identifier) 
-    :   mIdentifier(std::move(identifier)), 
-        mExpr(std::nullopt) {}
+struct Break {
+    std::string mLabel;
+    Break(std::string label) : mLabel(std::move(label)) {}
 };
 
+struct Continue {
+    std::string mLabel;
+    Continue(std::string label) : mLabel(std::move(label)) {}
+};
 
-// ------------------------------> BlockItem Definition <------------------------------
+struct While {
+    Expression mCondition;
+    std::unique_ptr<Statement> mBody;
+    std::string mLabel;
+    While(Expression condition, std::unique_ptr<Statement> body, std::string label)
+    :   mCondition(std::move(condition)), mBody(std::move(body)), mLabel(std::move(label)) {}
+};
+
+struct DoWhile {
+    std::unique_ptr<Statement> mBody;
+    Expression mCondition;
+    std::string mLabel;
+    DoWhile(std::unique_ptr<Statement> body, Expression condition, std::string label)
+    :   mBody(std::move(body)), mCondition(std::move(condition)), mLabel(std::move(label)) {}
+};
+
+using ForInit = std::variant<Declaration, std::optional<Expression>>;
+
+struct For {
+    ForInit mForInit;
+    std::optional<Expression> mCondition;
+    std::optional<Expression> mPost;
+    std::unique_ptr<Statement> mBody;
+    std::string mLabel;
+    For(ForInit forInit, std::optional<Expression> condition, std::optional<Expression> post, std::unique_ptr<Statement> body, std::string label)
+    :   mForInit(std::move(forInit)), mCondition(std::move(condition)), mPost(std::move(post)), mBody(std::move(body)), mLabel(std::move(label)) {}
+};
+
+struct NullStatement {};
+
+// ------------------------------> Block Definition <------------------------------
 
 using BlockItem = std::variant<Declaration, Statement>;
 

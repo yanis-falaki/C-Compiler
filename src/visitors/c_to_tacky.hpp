@@ -94,6 +94,10 @@ struct CToTacky {
     std::vector<ast::tacky::Instruction> mInstructions;
 
     // Expression visitors
+    ast::tacky::Val operator()(const ast::c::Expression& expr) {
+        return std::visit(*this, expr);
+    }
+
     ast::tacky::Val operator() (const ast::c::Constant& constant) {
         return ast::tacky::Constant(constant.mValue);
     }
@@ -268,6 +272,27 @@ struct CToTacky {
 
     void operator()(const ast::c::CompoundStatement& compoundStmt) {
         (*this)(*compoundStmt.mCompound);
+    }
+
+    // TODO add loop conversion logic
+    void operator()(const ast::c::Break& brk) {
+
+    }
+
+    void operator()(const ast::c::Continue& cont) {
+
+    }
+
+    void operator()(const ast::c::While& whileStmt) {
+
+    }
+
+    void operator()(const ast::c::DoWhile& doWhile) {
+
+    }
+
+    void operator()(const ast::c::For& forStmt) {
+
     }
 
     void operator()(const ast::c::NullStatement& null) {}

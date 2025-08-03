@@ -23,6 +23,10 @@ struct PrintVisitor {
     }
     
     // Expression visitors
+    void operator()(const Expression& expr) const {
+        std::visit(*this, expr);
+    }
+
     void operator()(const Constant& constant) const {
         std::cout << indent() << "Constant: " << constant.mValue << std::endl;
     }
@@ -118,6 +122,58 @@ struct PrintVisitor {
         PrintVisitor(depth+1)(*(compoundStmt.mCompound));
     }
 
+    void operator()(const Break& brk) const {
+        std::cout << indent() << "Break" << std::endl;
+    }
+
+    void operator()(const Continue& cont) const {
+        std::cout << indent() << "Continue" << std::endl;
+    }
+
+    void operator()(const While& whileStmt) const {
+        std::cout << indent() << "While: " << whileStmt.mLabel << std::endl;
+        std::cout << indent() << "  Condition:\n";
+        std::visit(PrintVisitor(depth+2), whileStmt.mCondition);
+        std::cout << indent() << "  Body:\n";
+        std::visit(PrintVisitor(depth+2), *whileStmt.mBody);
+    }
+
+    void operator()(const DoWhile& doWhile) const {
+        std::cout << indent() << "DoWhile: " << doWhile.mLabel << std::endl;
+        std::cout << indent() << "  Body:\n";
+        std::visit(PrintVisitor(depth+2), *doWhile.mBody);
+        std::cout << indent() << "  Condition:\n";
+        std::visit(PrintVisitor(depth+2), doWhile.mCondition);
+    }
+
+    void operator()(const For& forStmt) const {
+        std::cout << indent() << "For: " << forStmt.mLabel << std::endl;
+
+        if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
+            std::cout << indent() << "  Initial Declaration:\n";
+            PrintVisitor(depth+2)(std::get<Declaration>(forStmt.mForInit));
+        }
+        else {
+            const auto& initialExpression = std::get<std::optional<Expression>>(forStmt.mForInit);
+            if (initialExpression.has_value()) {
+                std::cout << indent() << "  Initial Expression:\n";
+                PrintVisitor(depth+2)(initialExpression.value());
+            }
+        }
+
+        if (forStmt.mCondition.has_value()) {
+            std::cout << indent() << "  Condition:\n";
+            std::visit(PrintVisitor(depth+2), forStmt.mCondition.value());
+        }
+        if (forStmt.mPost.has_value()) {
+            std::cout << indent() << "  Iteration Expression:\n";
+            std::visit(PrintVisitor(depth+2), forStmt.mPost.value());
+        }
+
+        std::cout << indent() << "  Loop Body:\n";
+        std::visit(PrintVisitor(depth+2), *forStmt.mBody);
+    }
+
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
@@ -160,6 +216,10 @@ struct PrintVisitor {
 
 // Print Visitor
 struct CopyVisitor {
+    void operator()(const Expression& expr) const {
+        std::visit(*this, expr);
+    }
+
     Expression operator()(const Constant& constant) const {
         return Constant(constant.mValue);
     }
@@ -205,10 +265,18 @@ struct CopyVisitor {
             std::make_unique<Expression>(std::visit(*this, *conditional.mElse))
         );
     }
+
+    // Declaration
+    BlockItem operator()(const Declaration& declaration) const {
+        if (declaration.mExpr.has_value())
+            return Declaration(declaration.mIdentifier, std::visit(*this, declaration.mExpr.value()));
+        else
+            return Declaration(declaration.mIdentifier);
+    }
     
     // Statement visitors
-    BlockItem operator()(const Statement& statement) const {
-        return std::visit(*this, statement);
+    BlockItem operator()(const Statement& stmt) const {
+        return std::visit(*this, stmt);
     }
 
     Statement operator()(const Return& ret) const {
@@ -246,16 +314,50 @@ struct CopyVisitor {
         );
     }
 
-    Statement operator()(const NullStatement& null) const {
-        return NullStatement();
+    Statement operator()(const Break& brk) const {
+        return Break(brk.mLabel);
     }
 
-    // Declaration
-    BlockItem operator()(const Declaration& declaration) const {
-        if (declaration.mExpr.has_value())
-            return Declaration(declaration.mIdentifier, std::visit(*this, declaration.mExpr.value()));
-        else
-            return Declaration(declaration.mIdentifier);
+    Statement operator()(const Continue& cont) const {
+        return Continue(cont.mLabel);
+    }
+
+    Statement operator()(const While& whileStmt) const {
+        return While(std::visit(*this, whileStmt.mCondition), std::make_unique<Statement>(std::visit(*this, *whileStmt.mBody)), whileStmt.mLabel);
+    }
+
+    Statement operator()(const DoWhile& doWhile) const {
+        return DoWhile(std::make_unique<Statement>(std::visit(*this, *doWhile.mBody)), std::visit(*this, doWhile.mCondition), doWhile.mLabel);
+    }
+
+    Statement operator()(const For& forStmt) const {
+
+        ForInit forInit = std::nullopt;
+        if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
+            forInit = std::get<Declaration>((*this)(std::get<Declaration>(forStmt.mForInit)));
+        }
+        else {
+            const auto& initialExpression = std::get<std::optional<Expression>>(forStmt.mForInit);
+            if (initialExpression.has_value()) {
+                forInit = std::visit(*this, initialExpression.value());
+            }
+        }
+
+        std::optional<Expression> condition = forStmt.mCondition.has_value() 
+            ? std::optional<Expression>(std::visit(*this, forStmt.mCondition.value()))
+            : std::nullopt;
+
+        std::optional<Expression> post = forStmt.mPost.has_value() 
+            ? std::optional<Expression>(std::visit(*this, forStmt.mPost.value()))
+            : std::nullopt;
+
+        std::unique_ptr<Statement> body = std::make_unique<Statement>(std::visit(*this, *forStmt.mBody));
+
+        return For(std::move(forInit), std::move(condition), std::move(post), std::move(body), forStmt.mLabel);
+    }
+
+    Statement operator()(const NullStatement& null) const {
+        return NullStatement();
     }
 
     // Block

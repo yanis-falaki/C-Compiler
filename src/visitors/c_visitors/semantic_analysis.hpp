@@ -109,6 +109,30 @@ public:
         (*this)(*compoundStmt.mCompound);
     }
 
+    void operator()(const Break& brk) const {}
+
+    void operator()(const Continue& cont) const {}
+
+    void operator()(While& whileStmt) {
+        std::visit(*this, whileStmt.mCondition);
+        std::visit(*this, *whileStmt.mBody);
+    }
+
+    void operator()(DoWhile& doWhile) {
+        std::visit(*this, doWhile.mCondition);
+        std::visit(*this, *doWhile.mBody);
+    }
+
+    void operator()(For& forStmt) {
+        if (forStmt.mCondition.has_value())
+            std::visit(*this, forStmt.mCondition.value());
+        
+        if (forStmt.mPost.has_value())
+            std::visit(*this, forStmt.mPost.value());
+
+        std::visit(*this, *forStmt.mBody);
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Declaration visitor
@@ -225,6 +249,23 @@ struct LabelResolution {
 
     void operator()(CompoundStatement& compoundStmt) {
         (*this)(*compoundStmt.mCompound);
+    }
+
+    // TODO implement loop label resolution logic
+    void operator()(const Break& brk) const {}
+
+    void operator()(const Continue& cont) const {}
+
+    void operator()(While& whileStmt) {
+        std::visit(*this, *whileStmt.mBody);
+    }
+
+    void operator()(DoWhile& doWhile) {
+        std::visit(*this, *doWhile.mBody);
+    }
+
+    void operator()(For& forStmt) {
+        std::visit(*this, *forStmt.mBody);
     }
 
     void operator()(const NullStatement& ns) const {}
