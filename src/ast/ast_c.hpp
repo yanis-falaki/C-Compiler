@@ -217,29 +217,29 @@ struct CompoundStatement {
 };
 
 struct Break {
-    std::string mLabel;
-    Break(std::string label) : mLabel(std::move(label)) {}
+    int32_t mID;
+    Break(int32_t ID=-1) : mID(ID) {}
 };
 
 struct Continue {
-    std::string mLabel;
-    Continue(std::string label) : mLabel(std::move(label)) {}
+    int32_t mID;
+    Continue(int32_t ID=-1) : mID(ID) {}
 };
 
 struct While {
     Expression mCondition;
     std::unique_ptr<Statement> mBody;
-    std::string mLabel;
-    While(Expression condition, std::unique_ptr<Statement> body, std::string label)
-    :   mCondition(std::move(condition)), mBody(std::move(body)), mLabel(std::move(label)) {}
+    int32_t mID;
+    While(Expression condition, std::unique_ptr<Statement> body, int32_t ID=-1)
+    :   mCondition(std::move(condition)), mBody(std::move(body)), mID(ID) {}
 };
 
 struct DoWhile {
     std::unique_ptr<Statement> mBody;
     Expression mCondition;
-    std::string mLabel;
-    DoWhile(std::unique_ptr<Statement> body, Expression condition, std::string label)
-    :   mBody(std::move(body)), mCondition(std::move(condition)), mLabel(std::move(label)) {}
+    int32_t mID;
+    DoWhile(std::unique_ptr<Statement> body, Expression condition, int32_t ID=-1)
+    :   mBody(std::move(body)), mCondition(std::move(condition)), mID(ID) {}
 };
 
 using ForInit = std::variant<Declaration, std::optional<Expression>>;
@@ -249,9 +249,9 @@ struct For {
     std::optional<Expression> mCondition;
     std::optional<Expression> mPost;
     std::unique_ptr<Statement> mBody;
-    std::string mLabel;
-    For(ForInit forInit, std::optional<Expression> condition, std::optional<Expression> post, std::unique_ptr<Statement> body, std::string label)
-    :   mForInit(std::move(forInit)), mCondition(std::move(condition)), mPost(std::move(post)), mBody(std::move(body)), mLabel(std::move(label)) {}
+    int32_t mID;
+    For(ForInit forInit, std::optional<Expression> condition, std::optional<Expression> post, std::unique_ptr<Statement> body, int32_t ID=-1)
+    :   mForInit(std::move(forInit)), mCondition(std::move(condition)), mPost(std::move(post)), mBody(std::move(body)), mID(ID) {}
 };
 
 struct NullStatement {};

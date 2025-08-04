@@ -79,6 +79,11 @@ public:
         std::visit(*this, *conditional.mElse);
     }
 
+    void operator()(std::optional<Expression>& optionalExpression) const {
+        if (optionalExpression.has_value())
+            std::visit(*this, optionalExpression.value());
+    }
+
     // Statement visitors
     void operator()(Statement& statement) {
         std::visit(*this, statement);
@@ -124,13 +129,23 @@ public:
     }
 
     void operator()(For& forStmt) {
-        if (forStmt.mCondition.has_value())
-            std::visit(*this, forStmt.mCondition.value());
-        
-        if (forStmt.mPost.has_value())
-            std::visit(*this, forStmt.mPost.value());
+        // Create loop scope
+        mScopes.push_back(getCurrentScope());
+        mVarsDeclaredInScope.push_back(std::unordered_set<std::string>());
 
+        // Resolve for init
+        std::visit(*this, forStmt.mForInit);
+
+        // Resolve optional expressions
+        (*this)(forStmt.mCondition);
+        (*this)(forStmt.mPost);
+
+        // Resolve loop body
         std::visit(*this, *forStmt.mBody);
+
+        // Destroy loop scope
+        mScopes.pop_back();
+        mVarsDeclaredInScope.pop_back();
     }
 
     void operator()(const NullStatement& ns) const {}
@@ -177,6 +192,118 @@ public:
         // Exit scope
         mScopes.pop_back();
         mVarsDeclaredInScope.pop_back();
+    }
+
+    // Function visitor
+    void operator()(Function& func) {
+        (*this)(func.mBody);
+    }
+
+    // Program visitor
+    void operator()(Program& program) {
+        (*this)(program.mFunction);
+    }
+};
+
+// ------------------------------> Loop Labelling <------------------------------
+
+// ------------------------------> Helper function for making unique loop ids <------------------------------
+
+inline uint32_t makeUniqueLoopID() {
+    static uint32_t uniqueID = 0;
+    return uniqueID++;
+}
+
+struct LoopLabelling {
+
+    std::vector<int> loopIDs;
+
+    // Expression visitors
+    void operator()(const Constant& constant) const {}
+
+    void operator()(const Variable& variable) const {}
+
+    void operator()(const Unary& unary) const {}
+
+    void operator()(const Binary& binary) const {}
+
+    void operator()(const Assignment& assignment) const {}
+
+    void operator()(const Crement& crement) const {}
+
+    void operator()(const Conditional& conditional) const {}
+
+    // Declaration visitor
+    void operator()(const Declaration& declaration) const {}
+
+    // Statement visitors
+    void operator()(Statement& statement) {
+        std::visit(*this, statement);
+    }
+
+    void operator()(const Return& rs) const {}
+
+    void operator()(const ExpressionStatement& es) const {}
+
+    void operator()(If& ifStmt) {
+        std::visit(*this, ifStmt.mCondition);
+        std::visit(*this, *ifStmt.mThen);
+        if (ifStmt.mElse.has_value())
+            std::visit(*this, *ifStmt.mElse.value());
+    }
+
+    void operator()(const GoTo& gotoStmt) const {}
+
+    void operator()(LabelledStatement& labelledStmt) {
+        std::visit(*this, *labelledStmt.mStatement);
+    }
+
+    void operator()(CompoundStatement& compoundStmt) {
+        (*this)(*compoundStmt.mCompound);
+    }
+
+    void operator()(Break& brk) const {
+        if (loopIDs.size() <= 0)
+            throw std::runtime_error("Break statement found outside a loop!");
+        
+        brk.mID = loopIDs.back();
+    }
+
+    void operator()(Continue& cont) const {
+        if (loopIDs.size() <= 0)
+        throw std::runtime_error("Continue statement found outside a loop!");
+    
+        cont.mID = loopIDs.back();
+    }
+
+    void operator()(While& whileStmt) {
+        loopIDs.push_back(makeUniqueLoopID());
+        whileStmt.mID = loopIDs.back();
+        std::visit(*this, *whileStmt.mBody);
+        loopIDs.pop_back();
+    }
+
+    void operator()(DoWhile& doWhile) {
+        loopIDs.push_back(makeUniqueLoopID());
+        doWhile.mID = loopIDs.back();
+        std::visit(*this, *doWhile.mBody);
+        loopIDs.pop_back(); 
+    }
+
+    void operator()(For& forStmt) {
+        loopIDs.push_back(makeUniqueLoopID());
+        forStmt.mID = loopIDs.back();
+        std::visit(*this, *forStmt.mBody);
+        loopIDs.pop_back();
+    }
+
+    void operator()(const NullStatement& ns) const {}
+
+    // Block visitor
+    void operator()(Block& block) {
+        for (BlockItem& blockItem : block.mItems) {
+            std::visit(*this, blockItem);
+        }
     }
 
     // Function visitor
@@ -251,7 +378,6 @@ struct LabelResolution {
         (*this)(*compoundStmt.mCompound);
     }
 
-    // TODO implement loop label resolution logic
     void operator()(const Break& brk) const {}
 
     void operator()(const Continue& cont) const {}

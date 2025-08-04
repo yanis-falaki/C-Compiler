@@ -137,6 +137,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     // Validate C AST
     compiler::ast::c::VariableResolution()(program);
+    compiler::ast::c::LoopLabelling()(program);
     compiler::ast::c::LabelResolution()(program);
     if (args.count("validate")) {
         compiler::ast::c::PrintVisitor()(program);

@@ -285,13 +285,13 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
     else if (currentToken.mLexType == lexer::LexType::Break) {
         lexList.advance();
         expectAndAdvance(lexer::LexType::Semicolon, lexList);
-        return ast::c::Break("");
+        return ast::c::Break();
     }
     // Continue statement
     else if (currentToken.mLexType == lexer::LexType::Continue) {
         lexList.advance();
         expectAndAdvance(lexer::LexType::Semicolon, lexList);
-        return ast::c::Continue("");
+        return ast::c::Continue();
     }
     // While Loop
     else if (currentToken.mLexType == lexer::LexType::While) {
@@ -303,7 +303,7 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
         // Get statement
         auto body = std::make_unique<ast::c::Statement>(parseStatement(lexList));
 
-        return ast::c::While(std::move(condition), std::move(body), "");
+        return ast::c::While(std::move(condition), std::move(body));
     }
     // DoWhile loop
     else if (currentToken.mLexType == lexer::LexType::Do) {
@@ -315,7 +315,7 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
         expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
         expectAndAdvance(lexer::LexType::Semicolon, lexList);
 
-        return ast::c::DoWhile(std::move(body), std::move(condition), "");
+        return ast::c::DoWhile(std::move(body), std::move(condition));
     }
     // For loop
     else if (currentToken.mLexType == lexer::LexType::For) {
@@ -337,7 +337,7 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
 
         auto statement = std::make_unique<ast::c::Statement>(parseStatement(lexList));
 
-        return ast::c::For(std::move(forInit), std::move(condition), std::move(postExpression), std::move(statement), "");
+        return ast::c::For(std::move(forInit), std::move(condition), std::move(postExpression), std::move(statement));
     }
     // Null Statement
     else if (currentToken.mLexType == lexer::LexType::Semicolon) {
