@@ -51,7 +51,7 @@ There's still quite a lot to do, below is my todo list:
 - [x] Local Variables
 - [x] If Statements and Conditional Expressions
 - [x] Compound Statements
-- [ ] Loops
+- [x] Loops
 - [ ] Functions (Aside from main)
 - [ ] File Scope Variable Declarations and Storage-Class Specifiers
 

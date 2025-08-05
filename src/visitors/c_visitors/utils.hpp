@@ -131,7 +131,7 @@ struct PrintVisitor {
     }
 
     void operator()(const While& whileStmt) const {
-        std::cout << indent() << "While: " << whileStmt.mID << std::endl;
+        std::cout << indent() << "While: " << whileStmt.mLabel << std::endl;
         std::cout << indent() << "  Condition:\n";
         std::visit(PrintVisitor(depth+2), whileStmt.mCondition);
         std::cout << indent() << "  Body:\n";
@@ -139,7 +139,7 @@ struct PrintVisitor {
     }
 
     void operator()(const DoWhile& doWhile) const {
-        std::cout << indent() << "DoWhile: " << doWhile.mID << std::endl;
+        std::cout << indent() << "DoWhile: " << doWhile.mLabel << std::endl;
         std::cout << indent() << "  Body:\n";
         std::visit(PrintVisitor(depth+2), *doWhile.mBody);
         std::cout << indent() << "  Condition:\n";
@@ -147,7 +147,7 @@ struct PrintVisitor {
     }
 
     void operator()(const For& forStmt) const {
-        std::cout << indent() << "For: " << forStmt.mID << std::endl;
+        std::cout << indent() << "For: " << forStmt.mLabel << std::endl;
 
         if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
             std::cout << indent() << "  Initial Declaration:\n";
@@ -315,19 +315,19 @@ struct CopyVisitor {
     }
 
     Statement operator()(const Break& brk) const {
-        return Break(brk.mID);
+        return Break(brk.mLabel);
     }
 
     Statement operator()(const Continue& cont) const {
-        return Continue(cont.mID);
+        return Continue(cont.mLabel);
     }
 
     Statement operator()(const While& whileStmt) const {
-        return While(std::visit(*this, whileStmt.mCondition), std::make_unique<Statement>(std::visit(*this, *whileStmt.mBody)), whileStmt.mID);
+        return While(std::visit(*this, whileStmt.mCondition), std::make_unique<Statement>(std::visit(*this, *whileStmt.mBody)), whileStmt.mLabel);
     }
 
     Statement operator()(const DoWhile& doWhile) const {
-        return DoWhile(std::make_unique<Statement>(std::visit(*this, *doWhile.mBody)), std::visit(*this, doWhile.mCondition), doWhile.mID);
+        return DoWhile(std::make_unique<Statement>(std::visit(*this, *doWhile.mBody)), std::visit(*this, doWhile.mCondition), doWhile.mLabel);
     }
 
     Statement operator()(const For& forStmt) const {
@@ -353,7 +353,7 @@ struct CopyVisitor {
 
         std::unique_ptr<Statement> body = std::make_unique<Statement>(std::visit(*this, *forStmt.mBody));
 
-        return For(std::move(forInit), std::move(condition), std::move(post), std::move(body), forStmt.mID);
+        return For(std::move(forInit), std::move(condition), std::move(post), std::move(body), forStmt.mLabel);
     }
 
     Statement operator()(const NullStatement& null) const {

@@ -228,6 +228,13 @@ struct CToTacky {
         return result;
     }
 
+    // optional expression
+    std::optional<ast::tacky::Val> operator()(const std::optional<ast::c::Expression>& optionalExpression) {
+        if (optionalExpression.has_value())
+            return std::visit(*this, optionalExpression.value());
+        return std::nullopt;
+    }
+
     // Statement visitors
     void operator()(const ast::c::Statement& statement){
         std::visit(*this, statement);
@@ -276,23 +283,64 @@ struct CToTacky {
 
     // TODO add loop conversion logic
     void operator()(const ast::c::Break& brk) {
-
+        mInstructions.emplace_back(ast::tacky::Jump("break_" + brk.mLabel));
     }
 
     void operator()(const ast::c::Continue& cont) {
-
+        mInstructions.emplace_back(ast::tacky::Jump("continue_" + cont.mLabel));
     }
 
     void operator()(const ast::c::While& whileStmt) {
-
+        // Continue label (and start) to dilineate start of loop
+        mInstructions.emplace_back(ast::tacky::Label("continue_" + whileStmt.mLabel));
+        // Insert condition instructions and get result
+        ast::tacky::Val conditionResult = std::visit(*this, whileStmt.mCondition);
+        // Jump to break label past the loop if condition is zero
+        mInstructions.emplace_back(ast::tacky::JumpIfZero(conditionResult, "break_" + whileStmt.mLabel));
+        // Execute loop body
+        std::visit(*this, *whileStmt.mBody);
+        // Unconditionally jump back to start of loop where condition will be evaluated
+        mInstructions.emplace_back(ast::tacky::Jump("continue_" + whileStmt.mLabel));
+        // Break label after the loop
+        mInstructions.emplace_back(ast::tacky::Label("break_" + whileStmt.mLabel));
     }
 
     void operator()(const ast::c::DoWhile& doWhile) {
-
+        // start label jump back to
+        mInstructions.emplace_back(ast::tacky::Label("start_" + doWhile.mLabel));
+        // place loop body instructions in vector
+        std::visit(*this, *doWhile.mBody);
+        // continue label just before condition evaluation
+        mInstructions.emplace_back(ast::tacky::Label("continue_" + doWhile.mLabel));
+        ast::tacky::Val conditionResult = std::visit(*this, doWhile.mCondition);
+        // return to start label if condition expression is not zero
+        mInstructions.emplace_back(ast::tacky::JumpIfNotZero(conditionResult, "start_" + doWhile.mLabel));
+        // break label for break statements to refer to outside the loop
+        mInstructions.emplace_back(ast::tacky::Label("break_" + doWhile.mLabel));
     }
 
     void operator()(const ast::c::For& forStmt) {
-
+        // instructions for init
+        if (std::holds_alternative<ast::c::Declaration>(forStmt.mForInit))
+            (*this)(std::get<ast::c::Declaration>(forStmt.mForInit));
+        else
+            (*this)(std::get<std::optional<ast::c::Expression>>(forStmt.mForInit));
+        // start label
+        mInstructions.emplace_back(ast::tacky::Label("start_" + forStmt.mLabel));
+        // condition
+        auto conditionResult = (*this)(forStmt.mCondition);
+        if (conditionResult.has_value())
+            mInstructions.emplace_back(ast::tacky::JumpIfZero(conditionResult.value(), "break_" + forStmt.mLabel));
+        // Body instructions
+        std::visit(*this, *forStmt.mBody);
+        // continue label
+        mInstructions.emplace_back(ast::tacky::Label("continue_" + forStmt.mLabel));
+        // post expression
+        (*this)(forStmt.mPost);
+        // unconditionally jump to start
+        mInstructions.emplace_back(ast::tacky::Jump("start_" + forStmt.mLabel));
+        // break label outside loop (past unconditional jump)
+        mInstructions.emplace_back(ast::tacky::Label("break_" + forStmt.mLabel));
     }
 
     void operator()(const ast::c::NullStatement& null) {}

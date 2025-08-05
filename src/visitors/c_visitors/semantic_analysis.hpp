@@ -209,14 +209,14 @@ public:
 
 // ------------------------------> Helper function for making unique loop ids <------------------------------
 
-inline uint32_t makeUniqueLoopID() {
+inline std::string makeUniqueLoopID() {
     static uint32_t uniqueID = 0;
-    return uniqueID++;
+    return std::format("loop.{}", uniqueID++);
 }
 
 struct LoopLabelling {
 
-    std::vector<int> loopIDs;
+    std::vector<std::string> loopIDs;
 
     // Expression visitors
     void operator()(const Constant& constant) const {}
@@ -266,33 +266,33 @@ struct LoopLabelling {
         if (loopIDs.size() <= 0)
             throw std::runtime_error("Break statement found outside a loop!");
         
-        brk.mID = loopIDs.back();
+        brk.mLabel = loopIDs.back();
     }
 
     void operator()(Continue& cont) const {
         if (loopIDs.size() <= 0)
         throw std::runtime_error("Continue statement found outside a loop!");
     
-        cont.mID = loopIDs.back();
+        cont.mLabel = loopIDs.back();
     }
 
     void operator()(While& whileStmt) {
         loopIDs.push_back(makeUniqueLoopID());
-        whileStmt.mID = loopIDs.back();
+        whileStmt.mLabel = loopIDs.back();
         std::visit(*this, *whileStmt.mBody);
         loopIDs.pop_back();
     }
 
     void operator()(DoWhile& doWhile) {
         loopIDs.push_back(makeUniqueLoopID());
-        doWhile.mID = loopIDs.back();
+        doWhile.mLabel = loopIDs.back();
         std::visit(*this, *doWhile.mBody);
         loopIDs.pop_back(); 
     }
 
     void operator()(For& forStmt) {
         loopIDs.push_back(makeUniqueLoopID());
-        forStmt.mID = loopIDs.back();
+        forStmt.mLabel = loopIDs.back();
         std::visit(*this, *forStmt.mBody);
         loopIDs.pop_back();
     }
