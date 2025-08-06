@@ -174,6 +174,24 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+2), *forStmt.mBody);
     }
 
+    void operator()(const Switch& swtch) const {
+        std::cout << indent() << "Switch Statement:\n";
+        std::cout << indent() << "  Controlling Expression:\n";
+        std::visit(PrintVisitor(depth+2), swtch.mSelector);
+        std::cout << indent() << "  Switch Body:\n";
+        std::visit(PrintVisitor(depth+2), *swtch.mBody);
+    }
+
+    void operator()(const Case& caseStmt) const {
+        std::cout << indent() << "Case: " << caseStmt.mCondition.mValue << std::endl;
+        std::visit(PrintVisitor(depth+1), *caseStmt.mStmt);
+    }
+
+    void operator()(const Default& defaultStmt) const {
+        std::cout << indent() <<"Default:\n";
+        std::visit(PrintVisitor(depth+1), *defaultStmt.mStmt);
+    }
+
     void operator()(const NullStatement& null) const {
         std::cout << indent() << "Null Statement\n";
     }
@@ -354,6 +372,24 @@ struct CopyVisitor {
         std::unique_ptr<Statement> body = std::make_unique<Statement>(std::visit(*this, *forStmt.mBody));
 
         return For(std::move(forInit), std::move(condition), std::move(post), std::move(body), forStmt.mLabel);
+    }
+
+    Statement operator()(const Switch& swtch) const {
+        return Switch(
+            std::visit(*this, swtch.mSelector),
+            std::make_unique<Statement>(std::visit(*this, *swtch.mBody))
+        );
+    }
+
+    Statement operator()(const Case& caseStmt) const {
+        return Case(
+            Constant(caseStmt.mCondition.mValue),
+            std::make_unique<Statement>(std::visit(*this, *caseStmt.mStmt))
+        );
+    }
+
+    Statement operator()(const Default& defaultStmt) const {
+        return Default(std::make_unique<Statement>(std::visit(*this, *defaultStmt.mStmt)));
     }
 
     Statement operator()(const NullStatement& null) const {

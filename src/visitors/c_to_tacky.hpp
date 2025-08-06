@@ -343,6 +343,16 @@ struct CToTacky {
         mInstructions.emplace_back(ast::tacky::Label("break_" + forStmt.mLabel));
     }
 
+    // TODO implement tacky translation for switch constructs
+    void operator()(const ast::c::Switch& swtch) const {
+    }
+
+    void operator()(const ast::c::Case& caseStmt) const {
+    }
+
+    void operator()(const ast::c::Default& defaultStmt) const {
+    }
+
     void operator()(const ast::c::NullStatement& null) {}
 
     // Declaration

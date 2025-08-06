@@ -169,8 +169,11 @@ struct Continue;
 struct While;
 struct DoWhile;
 struct For;
+struct Switch;
+struct Case;
+struct Default;
 using Statement = std::variant<Return, ExpressionStatement, If, GoTo, LabelledStatement, CompoundStatement,
-                               Break, Continue, While, DoWhile, For, NullStatement>;
+                               Break, Continue, While, DoWhile, For, Switch, Case, Default, NullStatement>;
 
 struct Return {
     Expression mExpr;
@@ -252,6 +255,23 @@ struct For {
     std::string mLabel;
     For(ForInit forInit, std::optional<Expression> condition, std::optional<Expression> post, std::unique_ptr<Statement> body, std::string label = "")
     :   mForInit(std::move(forInit)), mCondition(std::move(condition)), mPost(std::move(post)), mBody(std::move(body)), mLabel(std::move(label)) {}
+};
+
+struct Switch {
+    Expression mSelector;
+    std::unique_ptr<Statement> mBody;
+    Switch(Expression selector, std::unique_ptr<Statement> body) : mSelector(std::move(selector)), mBody(std::move(body)) {}
+};
+
+struct Case {
+    Constant mCondition;
+    std::unique_ptr<Statement> mStmt;
+    Case(Constant condition, std::unique_ptr<Statement> stmt) : mCondition(std::move(condition)), mStmt(std::move(stmt)) {}
+};
+
+struct Default {
+    std::unique_ptr<Statement> mStmt;
+    Default(std::unique_ptr<Statement> stmt) : mStmt(std::move(stmt)) {}
 };
 
 struct NullStatement {};

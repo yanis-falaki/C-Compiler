@@ -148,6 +148,16 @@ public:
         mVarsDeclaredInScope.pop_back();
     }
 
+    // TODO implement variable resolution for switch constructs
+    void operator()(const Switch& swtch) const {
+    }
+
+    void operator()(const Case& caseStmt) const {
+    }
+
+    void operator()(const Default& defaultStmt) const {
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Declaration visitor
@@ -297,6 +307,16 @@ struct LoopLabelling {
         loopIDs.pop_back();
     }
 
+    // TODO implement loop labelling for switch constructs
+    void operator()(const Switch& swtch) const {
+    }
+
+    void operator()(const Case& caseStmt) const {
+    }
+
+    void operator()(const Default& defaultStmt) const {
+    }
+
     void operator()(const NullStatement& ns) const {}
 
     // Block visitor
@@ -392,6 +412,16 @@ struct LabelResolution {
 
     void operator()(For& forStmt) {
         std::visit(*this, *forStmt.mBody);
+    }
+
+    // TODO implement label resolution for switch constructs
+    void operator()(const Switch& swtch) const {
+    }
+
+    void operator()(const Case& caseStmt) const {
+    }
+
+    void operator()(const Default& defaultStmt) const {
     }
 
     void operator()(const NullStatement& ns) const {}
