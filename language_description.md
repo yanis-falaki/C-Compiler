@@ -1,16 +1,18 @@
 ## Zephyr Abstract Syntax Description Lanuguage description:
 ```
-program = Program(function_definition)
+program = Program(function_declaration*)
 
-function_definition = Function(identifier name, block body)
+function_declaration = (identifier name, identifier* params, block? body)
 
 block_item = S(statement) | D(decleration)
 
 block = Block(block_item*)
 
-declaration = Declaration(identifier name, exp? init)
+declaration = FunDecl | VarDecl(variable_declaration)
 
-for_init = InitDecl(declaration) | InitExp(exp?)
+variable_declaration = (identifier name, exp? init)
+
+for_init = InitDecl(variable_declaration) | InitExp(exp?)
 
 statement = Return(exp value)
           | Expression(exp)
@@ -26,6 +28,7 @@ statement = Return(exp value)
           | Switch(exp selector, statement body)
           | Case(exp condition, statement stmt)
           | Default(statement stmt)
+          | FunctionCall(identifier, exp* args)
           | Null
 
 exp = Constant(int)
@@ -47,17 +50,21 @@ binary_operator = Add | Subtract | Divide | Remainder
 
 ## Formal Grammar (Extended Backus-Naur Form)
 ```
-<program> ::= <function>
+<program> ::= {<function-declaration>}
 
-<function> ::= "int" <identifier> "(" "void" ")" <block>
+<declaration> ::= <variable-declaration> | <function-declaration>
+
+<variable-declaration> ::= "int" <identifier> ["=" <exp>] ";"
+
+<function-declaration> ::= "int" <identifier> "(" <param-list> ")" (<block> | ";")
+
+<param-list> ::= "void" | "int" <identifier> {"," "int" <identifier>}
 
 <block-item> ::= <statement> | <declaration>
 
 <block> ::= "{" {<block-item>} "}"
 
-<declaration> ::= "int" <identifier> ["=" <exp>] ";"
-
-<for-init> ::= <declaration> | [exp] ";"
+<for-init> ::= <variable-declaration> | [exp] ";"
 
 <statement> ::= "return" <exp> ";" 
                | <exp> ";"
@@ -78,8 +85,11 @@ binary_operator = Add | Subtract | Divide | Remainder
 <exp> ::= <factor> | <exp> <binop> <exp> | <exp> "?" <exp> : <exp>
 
 <factor> ::= <int> | <identifier> | <unop> <factor> | "(" <exp> ")" | <crement> <factor> | <factor> <crement>
+           | <identifier> "(" [<argument-list>] ")"
 
-<crement> "++" | "--"
+<argument-list> ::= <exp> {, <exp>}
+
+<crement> ::= "++" | "--"
 
 <unop> ::= "-" | "~" | "!"
 
