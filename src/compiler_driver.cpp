@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
         ("P,no-linemarkers", "No linemarkers")
         ("E,preprocess", "Stop at preprocessing")
         ("S,assembly", "Stop at assembly generation")
+        ("c", "Build object file and don't invoke linker")
         ("lex", "Stop at lexing")
         ("parse", "Stop at parsing")
         ("validate", "Stop at C AST validation")
@@ -175,7 +176,11 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
 
 void assemble(fs::path source_path, fs::path output_path, const cxxopts::ParseResult& args) {
-    std::string command = std::format("gcc {} -o {}", source_path.string(), output_path.string());
+    std::string command;
+    if (args.count("c"))
+        command = std::format("gcc -c {} -o {}", source_path.string(), output_path.string() + ".o");
+    else
+        command = std::format("gcc {} -o {}", source_path.string(), output_path.string());
     if(system(command.c_str())) {
         throw std::runtime_error("Sys command error");
     }

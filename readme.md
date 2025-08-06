@@ -26,6 +26,7 @@ After building the compiler, you can use it from the command line as follows:
 | `-P`, `--no-linemarkers` | Disable linemarkers during preprocessing                                          |
 | `-E`, `--preprocess`     | Stop after preprocessing stage (outputs `.i` file)                                |
 | `-S`, `--assembly`       | Stop after assembly generation (outputs `.s` file)                                |
+| `-c`                     | Build object file and don't invoke linker (outputs `.o` file)                     |
 | `--lex`                  | Stop after lexing and print tokens                                                |
 | `--parse`                | Stop after parsing and print the AST                                              |
 | `--validate`             | Validate and print the C AST after semantic analysis                              |
