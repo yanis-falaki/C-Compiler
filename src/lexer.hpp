@@ -27,6 +27,9 @@ enum class LexType {
     For,
     Break,
     Continue,
+    Switch,
+    Case,
+    Default,
     Open_Parenthesis,
     Close_Parenthesis,
     Open_Brace,
@@ -84,6 +87,9 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::For:                      return "for";
         case LexType::Break:                    return "break";
         case LexType::Continue:                 return "continue";
+        case LexType::Switch:                   return "switch";
+        case LexType::Case:                     return "case";
+        case LexType::Default:                  return "default";
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
@@ -141,7 +147,10 @@ constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
     std::make_pair("while", LexType::While),
     std::make_pair("for", LexType::For),
     std::make_pair("break", LexType::Break),
-    std::make_pair("continue", LexType::Continue)
+    std::make_pair("continue", LexType::Continue),
+    std::make_pair("switch", LexType::Switch),
+    std::make_pair("case", LexType::Case),
+    std::make_pair("defaukt", LexType::Default)
 };
 
 // ------------------------------> is_unary_op <------------------------------
@@ -260,7 +269,7 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
 // ------------------------------> Symbols to Check <------------------------------
 
 // arraySize is length of enums - types we shouldn't check for.
-constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-13;
+constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-16;
 
 constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> generateSortedSymbolMapping() {
     std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> sortedSymbols{};
@@ -281,7 +290,10 @@ constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> 
             lexType == LexType::While ||
             lexType == LexType::For ||
             lexType == LexType::Break ||
-            lexType == LexType::Continue) {
+            lexType == LexType::Continue ||
+            lexType == LexType::Switch ||
+            lexType == LexType::Case ||
+            lexType == LexType::Default) {
             continue;
         }
 
