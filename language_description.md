@@ -16,20 +16,23 @@ statement = Return(exp value)
           | Expression(exp)
           | If(exp condition, statement then, statement? else)
           | GoTo(identifier target)
-          | Label(identifier, statement)
+          | Label(identifier label, statement stmt)
           | Compound(block)
           | Break(identifier label)
           | Continue(identifier label)
           | While(exp condition, statement body, identifier label)
           | DoWhile(statement body, exp condition, identifier label)
           | For(for_init init, exp? condition, exp? post, statement body)
+          | Switch(exp selector, statement body)
+          | Case(exp condition, statement stmt)
+          | Default(statement stmt)
           | Null
 
 exp = Constant(int)
     | Unary(unary_operator, exp)
     | Binary(binary_operator, exp, exp)
     | Var(identifier)
-    | Assignment(exp, exp)
+    | Assignment(exp left, exp right)
     | Crement(exp, bool post, bool increment)
     | Conditional(exp condition, exp, exp)
 
@@ -67,6 +70,9 @@ binary_operator = Add | Subtract | Divide | Remainder
                | "while" "(" <exp> ")" <statement>
                | "do" <statement> "while" "(" <exp> ")" ";"
                | "for" "(" <for-init> [<exp>] ";" [<exp>] ")" <statement>
+               | "switch" "(" <exp> ")" <statement>
+               | "case" <int> ":" <statement> // for now cases can only be ints
+               | "default" ":" <statement>
                | ";"
 
 <exp> ::= <factor> | <exp> <binop> <exp> | <exp> "?" <exp> : <exp>
