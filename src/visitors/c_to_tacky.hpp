@@ -281,7 +281,6 @@ struct CToTacky {
         (*this)(*compoundStmt.mCompound);
     }
 
-    // TODO add loop conversion logic
     void operator()(const ast::c::Break& brk) {
         mInstructions.emplace_back(ast::tacky::Jump("break_" + brk.mLabel));
     }
@@ -344,13 +343,36 @@ struct CToTacky {
     }
 
     // TODO implement tacky translation for switch constructs
-    void operator()(const ast::c::Switch& swtch) const {
+    void operator()(const ast::c::Switch& swtch) {
+        // For now it'll just be a sequence of if statements
+        ast::tacky::Val selector = std::visit(*this, swtch.mSelector);
+        for (int cse : swtch.mCases) {
+            mInstructions.emplace_back(ast::tacky::JumpIfEqual(
+                selector,
+                ast::tacky::Constant(cse),
+                std::format("case_{}_{}", cse, swtch.mLabel)
+            ));
+        }
+        if (swtch.hasDefault)
+            mInstructions.emplace_back(ast::tacky::Jump("default_" + swtch.mLabel));
+        else
+            mInstructions.emplace_back(ast::tacky::Jump("break_" + swtch.mLabel));
+
+        std::visit(*this, *swtch.mBody);
+
+        mInstructions.emplace_back(ast::tacky::Label("break_" + swtch.mLabel));
     }
 
-    void operator()(const ast::c::Case& caseStmt) const {
+    void operator()(const ast::c::Case& caseStmt) {
+        mInstructions.emplace_back(ast::tacky::Label(
+            std::format("case_{}_{}", std::get<ast::c::Constant>(caseStmt.mCondition).mValue, caseStmt.mLabel)
+        ));
+        std::visit(*this, *caseStmt.mStmt);
     }
 
-    void operator()(const ast::c::Default& defaultStmt) const {
+    void operator()(const ast::c::Default& defaultStmt) {
+        mInstructions.emplace_back(ast::tacky::Label("default_" + defaultStmt.mLabel));
+        std::visit(*this, *defaultStmt.mStmt);
     }
 
     void operator()(const ast::c::NullStatement& null) {}

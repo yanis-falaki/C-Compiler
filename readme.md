@@ -52,7 +52,7 @@ There's still quite a lot to do, below is my todo list:
 - [x] If Statements and Conditional Expressions
 - [x] Compound Statements
 - [x] Loops
-- [ ] Switch statements
+- [x] Switch statements
 - [ ] Functions (Aside from main)
 - [ ] File Scope Variable Declarations and Storage-Class Specifiers
 

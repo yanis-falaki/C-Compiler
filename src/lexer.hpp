@@ -150,7 +150,7 @@ constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
     std::make_pair("continue", LexType::Continue),
     std::make_pair("switch", LexType::Switch),
     std::make_pair("case", LexType::Case),
-    std::make_pair("defaukt", LexType::Default)
+    std::make_pair("default", LexType::Default)
 };
 
 // ------------------------------> is_unary_op <------------------------------

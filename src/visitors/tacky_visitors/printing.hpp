@@ -83,6 +83,14 @@ struct PrintVisitor {
         std::visit(PrintVisitor(depth+2), jumpIfNotZero.mCondition);
     }
 
+    void operator()(const JumpIfEqual& JumpIfEqual) const {
+        std::cout << indent() << "Jump If Equal: " << JumpIfEqual.mTarget << std::endl;
+        std::cout << indent() << "  " << "Source 1:\n";
+        std::visit(PrintVisitor(depth+2), JumpIfEqual.mSrc1);
+        std::cout << indent() << "  " << "Source 2:\n";
+        std::visit(PrintVisitor(depth+2), JumpIfEqual.mSrc2);
+    }
+
     void operator()(const Label& label) const {
         std::cout << indent() << "Label: " << label.mIdentifier << std::endl;
     }

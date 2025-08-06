@@ -143,12 +143,19 @@ struct JumpIfNotZero {
     JumpIfNotZero(Val condition, std::string target) : mCondition(std::move(condition)), mTarget(std::move(target)) {}
 };
 
+struct JumpIfEqual {
+    Val mSrc1;
+    Val mSrc2;
+    std::string mTarget;
+    JumpIfEqual(Val src1, Val src2, std::string target) : mSrc1(std::move(src1)), mSrc2(std::move(src2)), mTarget(std::move(target)) {}
+};
+
 struct Label {
     std::string mIdentifier;
     Label(std::string identifier) : mIdentifier(std::move(identifier)) {}
 };
 
-using Instruction = std::variant<Return, Unary, Binary, Copy, Jump, JumpIfZero, JumpIfNotZero, Label>;
+using Instruction = std::variant<Return, Unary, Binary, Copy, Jump, JumpIfZero, JumpIfNotZero, JumpIfEqual, Label>;
 
 // ------------------------------> Function Definition <------------------------------
 

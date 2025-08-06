@@ -143,6 +143,11 @@ struct TackyToAsmb {
         mInstructions.emplace_back(ast::asmb::JmpCC(ast::asmb::ConditionCode::NE, jmpIfNotZero.mTarget));
     }
 
+    void operator()(const ast::tacky::JumpIfEqual& jmpIfEqual) {
+        mInstructions.emplace_back(ast::asmb::Cmp(std::visit(*this, jmpIfEqual.mSrc1), std::visit(*this, jmpIfEqual.mSrc2)));
+        mInstructions.emplace_back(ast::asmb::JmpCC(ast::asmb::ConditionCode::E, jmpIfEqual.mTarget));
+    }
+
     void operator()(const ast::tacky::Label& label) {
         mInstructions.emplace_back(ast::asmb::Label(label.mIdentifier));
     }

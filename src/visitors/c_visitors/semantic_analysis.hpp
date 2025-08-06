@@ -341,7 +341,6 @@ struct ControlFlowLabelling {
         popLoop();
     }
 
-    // TODO implement loop labelling for switch constructs
     void operator()(Switch& swtch) {
         newSwitch(&swtch);
         swtch.mLabel = switchIDs.back();
@@ -474,7 +473,6 @@ struct LabelResolution {
         std::visit(*this, *forStmt.mBody);
     }
 
-    // TODO implement label resolution for switch constructs
     void operator()(const Switch& swtch) {
         std::visit(*this, *swtch.mBody);
     }
