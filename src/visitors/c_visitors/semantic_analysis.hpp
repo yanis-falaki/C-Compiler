@@ -148,14 +148,18 @@ public:
         mVarsDeclaredInScope.pop_back();
     }
 
-    // TODO implement variable resolution for switch constructs
     void operator()(const Switch& swtch) const {
+        std::visit(*this, swtch.mSelector);
+        std::visit(*this, *swtch.mBody);
     }
 
     void operator()(const Case& caseStmt) const {
+        std::visit(*this, caseStmt.mCondition);
+        std::visit(*this, *caseStmt.mStmt);
     }
 
     void operator()(const Default& defaultStmt) const {
+        std::visit(*this, *defaultStmt.mStmt);
     }
 
     void operator()(const NullStatement& ns) const {}
