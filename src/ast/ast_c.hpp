@@ -260,18 +260,24 @@ struct For {
 struct Switch {
     Expression mSelector;
     std::unique_ptr<Statement> mBody;
-    Switch(Expression selector, std::unique_ptr<Statement> body) : mSelector(std::move(selector)), mBody(std::move(body)) {}
+    std::string mLabel;
+    Switch(Expression selector, std::unique_ptr<Statement> body, std::string label = "")
+    :   mSelector(std::move(selector)), mBody(std::move(body)), mLabel(std::move(label)) {}
 };
 
 struct Case {
     Expression mCondition;
     std::unique_ptr<Statement> mStmt;
-    Case(Expression condition, std::unique_ptr<Statement> stmt) : mCondition(std::move(condition)), mStmt(std::move(stmt)) {}
+    std::string mLabel;
+    Case(Expression condition, std::unique_ptr<Statement> stmt, std::string label = "")
+    :   mCondition(std::move(condition)), mStmt(std::move(stmt)), mLabel(std::move(label)) {}
 };
 
 struct Default {
     std::unique_ptr<Statement> mStmt;
-    Default(std::unique_ptr<Statement> stmt) : mStmt(std::move(stmt)) {}
+    std::string mLabel;
+    Default(std::unique_ptr<Statement> stmt, std::string label = "")
+    :   mStmt(std::move(stmt)), mLabel(std::move(label)) {}
 };
 
 struct NullStatement {};

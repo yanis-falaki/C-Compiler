@@ -148,17 +148,17 @@ public:
         mVarsDeclaredInScope.pop_back();
     }
 
-    void operator()(const Switch& swtch) const {
+    void operator()(Switch& swtch) {
         std::visit(*this, swtch.mSelector);
         std::visit(*this, *swtch.mBody);
     }
 
-    void operator()(const Case& caseStmt) const {
+    void operator()(Case& caseStmt) {
         std::visit(*this, caseStmt.mCondition);
         std::visit(*this, *caseStmt.mStmt);
     }
 
-    void operator()(const Default& defaultStmt) const {
+    void operator()(Default& defaultStmt) {
         std::visit(*this, *defaultStmt.mStmt);
     }
 
@@ -221,16 +221,43 @@ public:
 
 // ------------------------------> Loop Labelling <------------------------------
 
-// ------------------------------> Helper function for making unique loop ids <------------------------------
+// ------------------------------> Helper functions <------------------------------
 
 inline std::string makeUniqueLoopID() {
-    static uint32_t uniqueID = 0;
-    return std::format("loop.{}", uniqueID++);
+    static uint32_t currentLoopID = 0;
+    return std::format("loop.{}", currentLoopID++);
 }
 
-struct LoopLabelling {
+inline std::string makeUniqueSwitchID() {
+    static uint32_t currentSwitchID = 0;
+    return std::format("switch.{}", currentSwitchID++);
+}
+
+struct ControlFlowLabelling {
 
     std::vector<std::string> loopIDs;
+    std::vector<std::string> switchIDs;
+    std::vector<std::string> switchAndLoopIDs;
+
+    void newLoop() {
+        loopIDs.push_back(makeUniqueLoopID());
+        switchAndLoopIDs.push_back(loopIDs.back());
+    }
+
+    void popLoop() {
+        loopIDs.pop_back();
+        switchAndLoopIDs.pop_back();
+    }
+
+    void newSwitch() {
+        switchIDs.push_back(makeUniqueSwitchID());
+        switchAndLoopIDs.push_back(switchIDs.back());
+    }
+
+    void popSwitch() {
+        switchIDs.pop_back();
+        switchAndLoopIDs.pop_back();
+    }
 
     // Expression visitors
     void operator()(const Constant& constant) const {}
@@ -277,10 +304,10 @@ struct LoopLabelling {
     }
 
     void operator()(Break& brk) const {
-        if (loopIDs.size() <= 0)
-            throw std::runtime_error("Break statement found outside a loop!");
+        if (switchAndLoopIDs.size() <= 0)
+            throw std::runtime_error("Break statement found outside a loop or switch!");
         
-        brk.mLabel = loopIDs.back();
+        brk.mLabel = switchAndLoopIDs.back();
     }
 
     void operator()(Continue& cont) const {
@@ -291,34 +318,48 @@ struct LoopLabelling {
     }
 
     void operator()(While& whileStmt) {
-        loopIDs.push_back(makeUniqueLoopID());
+        newLoop();
         whileStmt.mLabel = loopIDs.back();
         std::visit(*this, *whileStmt.mBody);
-        loopIDs.pop_back();
+        popLoop();
     }
 
     void operator()(DoWhile& doWhile) {
-        loopIDs.push_back(makeUniqueLoopID());
+        newLoop();
         doWhile.mLabel = loopIDs.back();
         std::visit(*this, *doWhile.mBody);
-        loopIDs.pop_back(); 
+        popLoop();
     }
 
     void operator()(For& forStmt) {
-        loopIDs.push_back(makeUniqueLoopID());
+        newLoop();
         forStmt.mLabel = loopIDs.back();
         std::visit(*this, *forStmt.mBody);
-        loopIDs.pop_back();
+        popLoop();
     }
 
     // TODO implement loop labelling for switch constructs
-    void operator()(const Switch& swtch) const {
+    void operator()(Switch& swtch) {
+        newSwitch();
+        swtch.mLabel = switchAndLoopIDs.back();
+        std::visit(*this, *swtch.mBody);
+        popSwitch();
     }
 
-    void operator()(const Case& caseStmt) const {
+    void operator()(Case& caseStmt) {
+        if (switchIDs.size() <= 0)
+            throw std::runtime_error("Case statement found outside a switch!");
+        
+        caseStmt.mLabel = switchIDs.back();
+        std::visit(*this, *caseStmt.mStmt);
     }
 
-    void operator()(const Default& defaultStmt) const {
+    void operator()(Default& defaultStmt) {
+        if (switchIDs.size() <= 0)
+            throw std::runtime_error("Case statement found outside a switch!");
+        
+        defaultStmt.mLabel = switchIDs.back();
+        std::visit(*this, *defaultStmt.mStmt);
     }
 
     void operator()(const NullStatement& ns) const {}

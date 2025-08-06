@@ -123,15 +123,15 @@ struct PrintVisitor {
     }
 
     void operator()(const Break& brk) const {
-        std::cout << indent() << "Break" << std::endl;
+        std::cout << indent() << "Break (" << brk.mLabel << ")\n";
     }
 
     void operator()(const Continue& cont) const {
-        std::cout << indent() << "Continue" << std::endl;
+        std::cout << indent() << "Continue (" << cont.mLabel << ")\n";
     }
 
     void operator()(const While& whileStmt) const {
-        std::cout << indent() << "While: " << whileStmt.mLabel << std::endl;
+        std::cout << indent() << "While (" << whileStmt.mLabel << "):\n";
         std::cout << indent() << "  Condition:\n";
         std::visit(PrintVisitor(depth+2), whileStmt.mCondition);
         std::cout << indent() << "  Body:\n";
@@ -139,7 +139,7 @@ struct PrintVisitor {
     }
 
     void operator()(const DoWhile& doWhile) const {
-        std::cout << indent() << "DoWhile: " << doWhile.mLabel << std::endl;
+        std::cout << indent() << "DoWhile (" << doWhile.mLabel << "):\n";
         std::cout << indent() << "  Body:\n";
         std::visit(PrintVisitor(depth+2), *doWhile.mBody);
         std::cout << indent() << "  Condition:\n";
@@ -147,7 +147,7 @@ struct PrintVisitor {
     }
 
     void operator()(const For& forStmt) const {
-        std::cout << indent() << "For: " << forStmt.mLabel << std::endl;
+        std::cout << indent() << "For (" << forStmt.mLabel << "):\n";
 
         if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
             std::cout << indent() << "  Initial Declaration:\n";
@@ -175,7 +175,7 @@ struct PrintVisitor {
     }
 
     void operator()(const Switch& swtch) const {
-        std::cout << indent() << "Switch Statement:\n";
+        std::cout << indent() << "Switch (" << swtch.mLabel << "):\n";
         std::cout << indent() << "  Controlling Expression:\n";
         std::visit(PrintVisitor(depth+2), swtch.mSelector);
         std::cout << indent() << "  Switch Body:\n";
@@ -183,7 +183,7 @@ struct PrintVisitor {
     }
 
     void operator()(const Case& caseStmt) const {
-        std::cout << indent() << "Case Statement:\n";
+        std::cout << indent() << "Case (" << caseStmt.mLabel << "):\n";
         std::cout << indent() << "  Condition:\n";
         std::visit(PrintVisitor(depth+2), caseStmt.mCondition);
         std::cout << indent() << "  Statement:\n";
@@ -191,7 +191,7 @@ struct PrintVisitor {
     }
 
     void operator()(const Default& defaultStmt) const {
-        std::cout << indent() <<"Default:\n";
+        std::cout << indent() <<"Default (" << defaultStmt.mLabel << "):\n";
         std::visit(PrintVisitor(depth+1), *defaultStmt.mStmt);
     }
 
@@ -380,19 +380,21 @@ struct CopyVisitor {
     Statement operator()(const Switch& swtch) const {
         return Switch(
             std::visit(*this, swtch.mSelector),
-            std::make_unique<Statement>(std::visit(*this, *swtch.mBody))
+            std::make_unique<Statement>(std::visit(*this, *swtch.mBody)),
+            swtch.mLabel
         );
     }
 
     Statement operator()(const Case& caseStmt) const {
         return Case(
             std::visit(*this, caseStmt.mCondition),
-            std::make_unique<Statement>(std::visit(*this, *caseStmt.mStmt))
+            std::make_unique<Statement>(std::visit(*this, *caseStmt.mStmt)),
+            caseStmt.mLabel
         );
     }
 
     Statement operator()(const Default& defaultStmt) const {
-        return Default(std::make_unique<Statement>(std::visit(*this, *defaultStmt.mStmt)));
+        return Default(std::make_unique<Statement>(std::visit(*this, *defaultStmt.mStmt)), defaultStmt.mLabel);
     }
 
     Statement operator()(const NullStatement& null) const {
