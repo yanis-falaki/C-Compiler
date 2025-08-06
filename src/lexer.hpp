@@ -66,6 +66,7 @@ enum class LexType {
     XOR_Equal,
     Left_Shift_Equal,
     Right_Shift_Equal,
+    Comma,
     Undefined, // Also serves as a count dummy enum to use for looping.
 };
 
@@ -130,6 +131,7 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::XOR_Equal:                return "^=";
         case LexType::Left_Shift_Equal:         return "<<=";
         case LexType::Right_Shift_Equal:        return ">>=";
+        case LexType::Comma:                    return ",";
     }
     throw std::runtime_error("lex_type_to_str received an unimplemented LexType");
 }
