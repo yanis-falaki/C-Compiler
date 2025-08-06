@@ -339,6 +339,31 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
 
         return ast::c::For(std::move(forInit), std::move(condition), std::move(postExpression), std::move(statement));
     }
+    // Switch statement
+    else if (currentToken.mLexType == lexer::LexType::Switch) {
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
+        ast::c::Expression selector = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        auto body = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        
+        return ast::c::Switch(std::move(selector), std::move(body));
+    }
+    // Case statement
+    else if (currentToken.mLexType == lexer::LexType::Case) {
+        lexList.advance();
+        auto condition = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Colon, lexList);
+        auto stmt = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        return ast::c::Case(std::move(condition), std::move(stmt));
+    }
+    // Default statement
+    else if (currentToken.mLexType == lexer::LexType::Default) {
+        lexList.advance();
+        expectAndAdvance(lexer::LexType::Colon, lexList);
+        auto stmt = std::make_unique<ast::c::Statement>(parseStatement(lexList));
+        return ast::c::Default(std::move(stmt));
+    }
     // Null Statement
     else if (currentToken.mLexType == lexer::LexType::Semicolon) {
         lexList.advance();

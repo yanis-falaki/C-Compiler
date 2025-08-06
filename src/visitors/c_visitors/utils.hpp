@@ -183,8 +183,11 @@ struct PrintVisitor {
     }
 
     void operator()(const Case& caseStmt) const {
-        std::cout << indent() << "Case: " << caseStmt.mCondition.mValue << std::endl;
-        std::visit(PrintVisitor(depth+1), *caseStmt.mStmt);
+        std::cout << indent() << "Case Statement:\n";
+        std::cout << indent() << "  Condition:\n";
+        std::visit(PrintVisitor(depth+2), caseStmt.mCondition);
+        std::cout << indent() << "  Statement:\n";
+        std::visit(PrintVisitor(depth+2), *caseStmt.mStmt);
     }
 
     void operator()(const Default& defaultStmt) const {
@@ -383,7 +386,7 @@ struct CopyVisitor {
 
     Statement operator()(const Case& caseStmt) const {
         return Case(
-            Constant(caseStmt.mCondition.mValue),
+            std::visit(*this, caseStmt.mCondition),
             std::make_unique<Statement>(std::visit(*this, *caseStmt.mStmt))
         );
     }

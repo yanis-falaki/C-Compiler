@@ -264,9 +264,9 @@ struct Switch {
 };
 
 struct Case {
-    Constant mCondition;
+    Expression mCondition;
     std::unique_ptr<Statement> mStmt;
-    Case(Constant condition, std::unique_ptr<Statement> stmt) : mCondition(std::move(condition)), mStmt(std::move(stmt)) {}
+    Case(Expression condition, std::unique_ptr<Statement> stmt) : mCondition(std::move(condition)), mStmt(std::move(stmt)) {}
 };
 
 struct Default {
