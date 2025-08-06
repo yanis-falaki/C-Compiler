@@ -258,17 +258,26 @@ struct For {
 };
 
 struct Switch {
+    std::vector<int> mCases;
+    bool hasDefault = false;
+
     Expression mSelector;
     std::unique_ptr<Statement> mBody;
     std::string mLabel;
+
     Switch(Expression selector, std::unique_ptr<Statement> body, std::string label = "")
     :   mSelector(std::move(selector)), mBody(std::move(body)), mLabel(std::move(label)) {}
+
+    void addCase(int newCase) {
+        mCases.push_back(newCase);
+    }
 };
 
 struct Case {
     Expression mCondition;
     std::unique_ptr<Statement> mStmt;
     std::string mLabel;
+
     Case(Expression condition, std::unique_ptr<Statement> stmt, std::string label = "")
     :   mCondition(std::move(condition)), mStmt(std::move(stmt)), mLabel(std::move(label)) {}
 };

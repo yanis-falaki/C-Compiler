@@ -219,7 +219,7 @@ public:
     }
 };
 
-// ------------------------------> Loop Labelling <------------------------------
+// ------------------------------> ControlFlow Labelling <------------------------------
 
 // ------------------------------> Helper functions <------------------------------
 
@@ -237,6 +237,7 @@ struct ControlFlowLabelling {
 
     std::vector<std::string> loopIDs;
     std::vector<std::string> switchIDs;
+    std::vector<Switch*> switchPtrs;
     std::vector<std::string> switchAndLoopIDs;
 
     void newLoop() {
@@ -249,14 +250,16 @@ struct ControlFlowLabelling {
         switchAndLoopIDs.pop_back();
     }
 
-    void newSwitch() {
+    void newSwitch(Switch* swtchPtr) {
         switchIDs.push_back(makeUniqueSwitchID());
         switchAndLoopIDs.push_back(switchIDs.back());
+        switchPtrs.push_back(swtchPtr);
     }
 
     void popSwitch() {
         switchIDs.pop_back();
         switchAndLoopIDs.pop_back();
+        switchPtrs.pop_back();
     }
 
     // Expression visitors
@@ -340,8 +343,8 @@ struct ControlFlowLabelling {
 
     // TODO implement loop labelling for switch constructs
     void operator()(Switch& swtch) {
-        newSwitch();
-        swtch.mLabel = switchAndLoopIDs.back();
+        newSwitch(&swtch);
+        swtch.mLabel = switchIDs.back();
         std::visit(*this, *swtch.mBody);
         popSwitch();
     }
@@ -349,16 +352,28 @@ struct ControlFlowLabelling {
     void operator()(Case& caseStmt) {
         if (switchIDs.size() <= 0)
             throw std::runtime_error("Case statement found outside a switch!");
+        if (!std::holds_alternative<Constant>(caseStmt.mCondition))
+            throw std::runtime_error("Only single integer literals are supported in case labels (constant expressions are not supported yet).");
+
+        auto presentCases = switchPtrs.back()->mCases;
+        auto currentCase = std::get<Constant>(caseStmt.mCondition).mValue;
+
+        if (std::find(presentCases.begin(), presentCases.end(), currentCase) != presentCases.end())
+            throw std::runtime_error("Duplicate cases found in switch statement!");
         
         caseStmt.mLabel = switchIDs.back();
+        switchPtrs.back()->addCase(currentCase);
         std::visit(*this, *caseStmt.mStmt);
     }
 
     void operator()(Default& defaultStmt) {
         if (switchIDs.size() <= 0)
             throw std::runtime_error("Case statement found outside a switch!");
+        if (switchPtrs.back()->hasDefault)
+            throw std::runtime_error("Default case already declared within switch statement!");
         
         defaultStmt.mLabel = switchIDs.back();
+        switchPtrs.back()->hasDefault = true;
         std::visit(*this, *defaultStmt.mStmt);
     }
 
@@ -420,18 +435,18 @@ struct LabelResolution {
 
     void operator()(const ExpressionStatement& es) const {}
 
-    void operator()(If& ifStmt) {
+    void operator()(const If& ifStmt) {
         std::visit(*this, *ifStmt.mThen);
         if (ifStmt.mElse.has_value())
             std::visit(*this, *ifStmt.mElse.value());
     }
 
-    void operator()(GoTo& gotoStmt) {
+    void operator()(const GoTo& gotoStmt) {
         if (!mNeededLabels.contains(gotoStmt.mTarget))
             mNeededLabels.insert(gotoStmt.mTarget);
     }
 
-    void operator()(LabelledStatement& labelledStmt) {
+    void operator()(const LabelledStatement& labelledStmt) {
         if (mPresentLabels.contains(labelledStmt.mIdentifier))
             throw std::runtime_error(std::format("Label: {} already declared!", labelledStmt.mIdentifier));
         
@@ -439,7 +454,7 @@ struct LabelResolution {
         std::visit(*this, *labelledStmt.mStatement);
     }
 
-    void operator()(CompoundStatement& compoundStmt) {
+    void operator()(const CompoundStatement& compoundStmt) {
         (*this)(*compoundStmt.mCompound);
     }
 
@@ -447,26 +462,29 @@ struct LabelResolution {
 
     void operator()(const Continue& cont) const {}
 
-    void operator()(While& whileStmt) {
+    void operator()(const While& whileStmt) {
         std::visit(*this, *whileStmt.mBody);
     }
 
-    void operator()(DoWhile& doWhile) {
+    void operator()(const DoWhile& doWhile) {
         std::visit(*this, *doWhile.mBody);
     }
 
-    void operator()(For& forStmt) {
+    void operator()(const For& forStmt) {
         std::visit(*this, *forStmt.mBody);
     }
 
     // TODO implement label resolution for switch constructs
-    void operator()(const Switch& swtch) const {
+    void operator()(const Switch& swtch) {
+        std::visit(*this, *swtch.mBody);
     }
 
-    void operator()(const Case& caseStmt) const {
+    void operator()(const Case& caseStmt) {
+        std::visit(*this, *caseStmt.mStmt);
     }
 
-    void operator()(const Default& defaultStmt) const {
+    void operator()(const Default& defaultStmt) {
+        std::visit(*this, *defaultStmt.mStmt);
     }
 
     void operator()(const NullStatement& ns) const {}
