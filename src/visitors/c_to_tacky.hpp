@@ -228,11 +228,38 @@ struct CToTacky {
         return result;
     }
 
+    ast::tacky::Val operator()(const ast::c::FunctionCall& functionCall) {
+        return ast::tacky::Constant(0);
+    }
+
     // optional expression
     std::optional<ast::tacky::Val> operator()(const std::optional<ast::c::Expression>& optionalExpression) {
         if (optionalExpression.has_value())
             return std::visit(*this, optionalExpression.value());
         return std::nullopt;
+    }
+
+    // Declaration
+    void operator()(const ast::c::Declaration& decl) {
+        std::visit(*this, decl);
+    }
+
+    void operator()(const ast::c::VarDecl& varDecl) {
+        if (!varDecl.mExpr.has_value())
+            return;
+
+        auto result = std::visit(*this, varDecl.mExpr.value());
+        ast::tacky::Var var(varDecl.mIdentifier);
+        mInstructions.emplace_back(ast::tacky::Copy(result, var));
+    }
+
+    void operator()(const ast::c::FuncDecl& funcDecl) {
+        if (funcDecl.mBody) {
+            (*this)(*funcDecl.mBody);
+            mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
+        }
+
+        //return ast::tacky::Function(funcDecl.mIdentifier, std::move(mInstructions));
     }
 
     // Statement visitors
@@ -320,8 +347,8 @@ struct CToTacky {
 
     void operator()(const ast::c::For& forStmt) {
         // instructions for init
-        if (std::holds_alternative<ast::c::Declaration>(forStmt.mForInit))
-            (*this)(std::get<ast::c::Declaration>(forStmt.mForInit));
+        if (std::holds_alternative<ast::c::VarDecl>(forStmt.mForInit))
+            (*this)(std::get<ast::c::VarDecl>(forStmt.mForInit));
         else
             (*this)(std::get<std::optional<ast::c::Expression>>(forStmt.mForInit));
         // start label
@@ -342,7 +369,6 @@ struct CToTacky {
         mInstructions.emplace_back(ast::tacky::Label("break_" + forStmt.mLabel));
     }
 
-    // TODO implement tacky translation for switch constructs
     void operator()(const ast::c::Switch& swtch) {
         // For now it'll just be a sequence of if statements
         ast::tacky::Val selector = std::visit(*this, swtch.mSelector);
@@ -377,16 +403,6 @@ struct CToTacky {
 
     void operator()(const ast::c::NullStatement& null) {}
 
-    // Declaration
-    void operator()(const ast::c::Declaration& declaration) {
-        if (!declaration.mExpr.has_value())
-            return;
-
-        auto result = std::visit(*this, declaration.mExpr.value());
-        ast::tacky::Var var(declaration.mIdentifier);
-        mInstructions.emplace_back(ast::tacky::Copy(result, var));
-    }
-
     // BlockItem
     void operator()(const ast::c::BlockItem& blockItem) {
         std::visit(*this, blockItem);
@@ -399,20 +415,10 @@ struct CToTacky {
         }
     }
 
-    // Function visitor
-    ast::tacky::Function operator()(const ast::c::Function& functionNode) {
-        (*this)(functionNode.mBody);
-        mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
-
-        if (functionNode.mIdentifier.has_value())
-            return ast::tacky::Function(functionNode.mIdentifier.value(), std::move(mInstructions));
-        else
-            return ast::tacky::Function(makeTemporaryRegister().mIdentifier, std::move(mInstructions));
-    }
-
     // Program visitor
     ast::tacky::Program operator()(const ast::c::Program& program) {
-        return ast::tacky::Program((*this)(program.mFunction));
+        return ast::tacky::Program(ast::tacky::Function("", std::vector<ast::tacky::Instruction>()));
+        //return ast::tacky::Program((*this)(program.mFunction));
     }
 };
 

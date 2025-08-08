@@ -85,7 +85,46 @@ const lexer::LexItem& expectNoAdvance(lexer::LexType expectedLexType, lexer::Lex
 
 // forward declarations
 static ast::c::Expression parseExpression(lexer::LexList& lexList, uint32_t minPrecedence=0);
-static ast::c::Declaration parseDeclaration(lexer::LexList& lexList);
+static ast::c::VarDecl parseVariableDeclaration(lexer::LexList& lexList);
+
+// ------------------------------> parseArgumentList <------------------------------
+
+std::vector<std::unique_ptr<ast::c::Expression>> parseArgumentList(lexer::LexList& lexList, lexer::LexType terminator = lexer::LexType::Close_Parenthesis) {
+    std::vector<std::unique_ptr<ast::c::Expression>> args;
+    if (lexList.current().mLexType == terminator) return args; // no params
+    while (true) {
+        args.emplace_back(std::make_unique<ast::c::Expression>(parseExpression(lexList)));
+        if (lexList.current().mLexType != lexer::LexType::Comma) break;
+        lexList.advance();
+    }
+    return args;
+}
+
+// ------------------------------> parseParamList <------------------------------
+
+static std::vector<std::string> parseParamList(lexer::LexList& lexList) {
+    std::vector<std::string> params;
+
+    if (lexList.current().mLexType == lexer::LexType::Void) {
+        lexList.advance();
+        return params;
+    }
+
+    while(true) {
+        expectAndAdvance(lexer::LexType::Int, lexList);
+        auto lexIdentifier = expectAndAdvance(lexer::LexType::Identifier, lexList);
+        params.emplace_back(std::string(lexIdentifier.mSV));
+
+        if (lexList.current().mLexType == lexer::LexType::Comma) {
+            lexList.advance();
+            continue;
+        }
+        // If there's no comma then break out of the loop
+        break;
+    }
+
+    return params;
+}
 
 // ------------------------------> parseFactor <------------------------------
 
@@ -109,6 +148,17 @@ static ast::c::Expression parseFactor(lexer::LexList& lexList) {
         auto innerExpression = parseExpression(lexList);
         expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
         expression = std::move(innerExpression);
+    }
+
+    // Function Call
+    else if ((currentToken.mLexType == lexer::LexType::Identifier) && 
+             (lexList.current().mLexType == lexer::LexType::Open_Parenthesis) // current lexList iterator was advanced with consume
+    ){
+        std::string identifier(currentToken.mSV);
+        lexList.advance(); // advance past open parentheses
+        auto argList = parseArgumentList(lexList);
+        expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
+        return ast::c::FunctionCall(identifier, std::move(argList));
     }
 
     // Variable
@@ -327,7 +377,7 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
 
         // check for declaration
         if (lexList.current().mLexType == lexer::LexType::Int)
-            forInit = parseDeclaration(lexList);
+            forInit = parseVariableDeclaration(lexList);
         else
             forInit = parseOptionalExpression(lexer::LexType::Semicolon, lexList);
         
@@ -380,28 +430,9 @@ static ast::c::Statement parseStatement(lexer::LexList& lexList) {
     //throw std::runtime_error(errorString);
 }
 
-// ------------------------------> parseDeclaration <------------------------------
-
-static ast::c::Declaration parseDeclaration(lexer::LexList& lexList) {
-    expectAndAdvance(lexer::LexType::Int, lexList);
-    std::string identifier(expectAndAdvance(lexer::LexType::Identifier, lexList).mSV);
-    const auto& currentToken = lexList.current();
-    lexList.advance();
-
-    if (currentToken.mLexType == lexer::LexType::Assignment) {
-        ast::c::Expression expression = parseExpression(lexList);
-        expectAndAdvance(lexer::LexType::Semicolon, lexList);
-        return ast::c::Declaration(std::move(identifier), std::move(expression));
-    }
-    else if (currentToken.mLexType == lexer::LexType::Semicolon) {
-        return ast::c::Declaration(std::move(identifier));
-    }
-    else {
-        throw(std::format("Invalid declaration, got {}", currentToken.mSV));
-    }
-}
-
 // ------------------------------> parseBlockItem <------------------------------
+static ast::c::Declaration parseDeclaration(lexer::LexList& lexList);
+
 static ast::c::BlockItem parseBlockItem(lexer::LexList& lexList) {
     const lexer::LexItem* currentToken = &lexList.current();
 
@@ -429,31 +460,73 @@ static ast::c::Block parseBlock(lexer::LexList& lexList) {
     return ast::c::Block(std::move(blockItems));
 }
 
-// ------------------------------> parseFunction <------------------------------
+// ------------------------------> parseDeclaration <------------------------------
 
-static ast::c::Function parseFunction(lexer::LexList& lexList) {
+static ast::c::VarDecl parseVariableDeclaration(lexer::LexList& lexList);
+static ast::c::FuncDecl parseFunctionDeclaration(lexer::LexList& lexList);
+
+static ast::c::Declaration parseDeclaration(lexer::LexList& lexList) {
+    if (lexList.peekAtOffset(2).mLexType == lexer::LexType::Open_Parenthesis)
+        return parseFunctionDeclaration(lexList);
+    else
+        return parseVariableDeclaration(lexList);
+}
+
+// ------------------------------> parseVariableDeclaration <------------------------------
+
+static ast::c::VarDecl parseVariableDeclaration(lexer::LexList& lexList) {
+    expectAndAdvance(lexer::LexType::Int, lexList);
+    std::string identifier(expectAndAdvance(lexer::LexType::Identifier, lexList).mSV);
+    const auto& currentToken = lexList.current();
+    lexList.advance();
+
+    if (currentToken.mLexType == lexer::LexType::Assignment) {
+        ast::c::Expression expression = parseExpression(lexList);
+        expectAndAdvance(lexer::LexType::Semicolon, lexList);
+        return ast::c::VarDecl(std::move(identifier), std::move(expression));
+    }
+    else if (currentToken.mLexType == lexer::LexType::Semicolon) {
+        return ast::c::VarDecl(std::move(identifier));
+    }
+    else {
+        throw std::runtime_error(std::format("Invalid variable declaration, got {}", std::string(currentToken.mSV)));
+    }
+}
+
+// ------------------------------> parseFunctionDeclaration <------------------------------
+
+static ast::c::FuncDecl parseFunctionDeclaration(lexer::LexList& lexList) {
     // Check for keyword void
     expectAndAdvance(lexer::LexType::Int, lexList);
 
     // Check for identifier (should be main but we'll pay no attention for now)
-    auto lexIdentifier =  expectAndAdvance(lexer::LexType::Identifier, lexList);
+    auto lexIdentifier = expectAndAdvance(lexer::LexType::Identifier, lexList);
 
     // Check for parameter list
     expectAndAdvance(lexer::LexType::Open_Parenthesis, lexList);
-    expectAndAdvance(lexer::LexType::Void, lexList);
+
+    // parse list of parameters
+    auto paramList = parseParamList(lexList);
+
     expectAndAdvance(lexer::LexType::Close_Parenthesis, lexList);
 
-    // parse block
-    auto block = parseBlock(lexList);
+    // parse definition if it exists
+    std::unique_ptr<ast::c::Block> body = nullptr;
+    if (lexList.current().mLexType == lexer::LexType::Semicolon)
+        lexList.advance();
+    else
+        body = std::make_unique<ast::c::Block>(parseBlock(lexList));
 
-    return ast::c::Function(std::string(lexIdentifier.mSV), std::move(block));
+    return ast::c::FuncDecl(std::string(lexIdentifier.mSV), std::move(paramList), std::move(body));
 }
 
 // ------------------------------> parseProgram <------------------------------
 
 ast::c::Program parseProgram(lexer::LexList& lexList) {
-    // For now the program can only take a single function.
-    auto returnedProgram = ast::c::Program(parseFunction(lexList));
+    ast::c::Program returnedProgram;
+
+    while (lexList.hasCurrent())
+        returnedProgram.addFuncDeclaration(parseFunctionDeclaration(lexList));
 
     if (lexList.hasCurrent())
         throw std::runtime_error("Program can only contain one top level function (for now)");

@@ -79,6 +79,48 @@ struct PrintVisitor {
         std::cout << indent() << "  Else:\n";
         std::visit(PrintVisitor(depth+2), *conditional.mElse);
     }
+
+    void operator()(const FunctionCall& functionCall) const {
+        std::cout << indent() << "Function Call: " << functionCall.mIdentifier << std::endl;
+        if (functionCall.mArgs.size() <= 0) return;
+        std::cout << indent() << "  Arguments:\n";
+        for(const auto& arg : functionCall.mArgs) {
+            std::visit(PrintVisitor(depth+2), *arg);
+        }
+    }
+
+    // Declaration
+    void operator()(const Declaration& decl) const {
+        std::visit(*this, decl);
+    }
+
+    void operator()(const VarDecl& varDecl) const {
+        std::cout << indent() << "Declaration: " << varDecl.mIdentifier << std::endl;
+        if (varDecl.mExpr.has_value()) {
+            std::cout << indent() << "  Initialized Expression\n";
+            std::visit(PrintVisitor(depth+2), varDecl.mExpr.value());
+        }
+    }
+
+    void operator()(const FuncDecl& funcDecl) const {
+        // identifier
+        std::cout << indent() << "Function Declaration: " << funcDecl.mIdentifier << std::endl;
+
+        // parameters
+        if(funcDecl.mParams.size() <= 0) std::cout << indent() << "  No Parameters\n";
+        else {
+            std::cout << indent() << "  Parameters:\n";
+            std::cout << indent() << "    ";
+            for (const auto& param : funcDecl.mParams)
+                std::cout << param << ",    ";
+            std::cout << std::endl;
+        }
+
+        // definition
+        if (!funcDecl.mBody) return;
+        std::cout << indent() << "  Definition:\n";
+        PrintVisitor(depth+2)(*funcDecl.mBody);
+    }
     
     // Statement visitors
     void operator()(const Statement& statement) const {
@@ -149,9 +191,9 @@ struct PrintVisitor {
     void operator()(const For& forStmt) const {
         std::cout << indent() << "For (" << forStmt.mLabel << "):\n";
 
-        if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
+        if (std::holds_alternative<VarDecl>(forStmt.mForInit)) {
             std::cout << indent() << "  Initial Declaration:\n";
-            PrintVisitor(depth+2)(std::get<Declaration>(forStmt.mForInit));
+            PrintVisitor(depth+2)(std::get<VarDecl>(forStmt.mForInit));
         }
         else {
             const auto& initialExpression = std::get<std::optional<Expression>>(forStmt.mForInit);
@@ -199,15 +241,6 @@ struct PrintVisitor {
         std::cout << indent() << "Null Statement\n";
     }
 
-    // Declaration
-    void operator()(const Declaration& declaration) const {
-        std::cout << indent() << "Declaration: " << declaration.mIdentifier << std::endl;
-        if (declaration.mExpr.has_value()) {
-            std::cout << indent() << "  Initialized Expression\n";
-            std::visit(PrintVisitor(depth+2), declaration.mExpr.value());
-        }
-    }
-
     // Block
     void operator()(const Block& block) const {
         for (const auto& blockItem : block.mItems){
@@ -215,20 +248,10 @@ struct PrintVisitor {
         }
     }
 
-    // Function visitor
-    void operator()(const Function& func) const {
-        std::string indent = std::string(depth * 2, ' ');
-        if (func.mIdentifier.has_value()) {
-            std::cout << indent << "Function " << func.mIdentifier.value() << ":" << std::endl;
-        } else {
-            std::cout << indent << "Function:" << std::endl;
-        }
-        (PrintVisitor(depth+1))(func.mBody);
-    }
-
     // Program visitor
     void operator()(const Program& program) const {
-        (*this)(program.mFunction);
+        for (const auto& funcDecl : program.mDeclarations)
+            (*this)(funcDecl);
     }
 };
 
@@ -250,7 +273,6 @@ struct CopyVisitor {
     }
 
     Expression operator()(const Unary& unary) const {
-        std::visit(*this, *unary.mExpr);
         return Unary(
             unary.mOp,
             std::make_unique<Expression>(std::visit(*this, *unary.mExpr)));
@@ -287,12 +309,29 @@ struct CopyVisitor {
         );
     }
 
+    Expression operator()(const FunctionCall& functionCall) const {
+        std::vector<std::unique_ptr<Expression>> args;
+        for (const auto& arg : functionCall.mArgs)
+            args.emplace_back(std::make_unique<Expression>(std::visit(*this, *arg)));
+        return FunctionCall(functionCall.mIdentifier, std::move(args));
+    }
+
     // Declaration
-    BlockItem operator()(const Declaration& declaration) const {
-        if (declaration.mExpr.has_value())
-            return Declaration(declaration.mIdentifier, std::visit(*this, declaration.mExpr.value()));
+    BlockItem operator()(const Declaration& decl) const {
+        return std::visit(*this, decl);
+    }
+
+    Declaration operator()(const VarDecl& varDecl) const {
+        if (varDecl.mExpr.has_value())
+            return VarDecl(varDecl.mIdentifier, std::visit(*this, varDecl.mExpr.value()));
         else
-            return Declaration(declaration.mIdentifier);
+            return VarDecl(varDecl.mIdentifier);
+    }
+
+    Declaration operator()(const FuncDecl& funcDecl) const {
+        std::unique_ptr<Block> body = nullptr;
+        if (funcDecl.mBody) body = std::make_unique<Block>((*this)(*funcDecl.mBody));
+        return FuncDecl(funcDecl.mIdentifier, funcDecl.mParams, std::move(body));
     }
     
     // Statement visitors
@@ -354,8 +393,8 @@ struct CopyVisitor {
     Statement operator()(const For& forStmt) const {
 
         ForInit forInit = std::nullopt;
-        if (std::holds_alternative<Declaration>(forStmt.mForInit)) {
-            forInit = std::get<Declaration>((*this)(std::get<Declaration>(forStmt.mForInit)));
+        if (std::holds_alternative<VarDecl>(forStmt.mForInit)) {
+            forInit = std::get<VarDecl>((*this)(std::get<VarDecl>(forStmt.mForInit)));
         }
         else {
             const auto& initialExpression = std::get<std::optional<Expression>>(forStmt.mForInit);
@@ -413,15 +452,13 @@ struct CopyVisitor {
         return Block(std::move(blockItems));
     }
 
-    // Function visitor
-    Function operator()(const Function& func) const {
-        Block body = (*this)(func.mBody);
-        return Function(func.mIdentifier, std::move(body));
-    }
-
     // Program visitor
     Program operator()(const Program& program) const {
-        return Program((*this)(program.mFunction));
+        std::vector<FuncDecl> funcDecls;
+        for (const auto& funcDecl : program.mDeclarations) {
+            funcDecls.push_back(std::get<FuncDecl>((*this)(funcDecl)));
+        }
+        return Program(std::move(funcDecls));
     }
 };
 

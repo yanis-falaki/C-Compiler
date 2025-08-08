@@ -356,6 +356,12 @@ public:
         return mLexVector[mCurrentIndex+1];
     }
 
+    const LexItem& peekAtOffset(int32_t n) {
+        if ((mCurrentIndex + n >= mLexVector.size()) || (mCurrentIndex + n < 0))
+            throw std::out_of_range("No more tokens");
+        return mLexVector[mCurrentIndex+n];
+    }
+
     /// @brief Reset the internal index to 0
     void resetIndex() {
         mCurrentIndex = 0;

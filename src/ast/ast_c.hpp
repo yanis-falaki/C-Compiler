@@ -83,7 +83,8 @@ struct Assignment;
 struct Variable;
 struct Crement;
 struct Conditional;
-using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment, Crement, Conditional>;
+struct FunctionCall;
+using Expression = std::variant<Constant, Unary, Binary, Variable, Assignment, Crement, Conditional, FunctionCall>;
 
 struct Constant {
     int mValue;
@@ -139,20 +140,52 @@ struct Conditional {
         mElse(std::move(elseExpr)) {}
 };
 
+struct FunctionCall {
+    std::string mIdentifier;
+    std::vector<std::unique_ptr<Expression>> mArgs;
+
+    FunctionCall(std::string identifier, std::vector<std::unique_ptr<Expression>> args)
+    :   mIdentifier(std::move(identifier)), mArgs(std::move(args)) {}
+};
+
 // ------------------------------> Declaration <------------------------------
 
-struct Declaration {
+// Forward declaration
+struct Block;
+
+struct VarDecl {
     std::string mIdentifier;
     std::optional<Expression> mExpr;
 
-    Declaration(std::string identifier, Expression expression)
+    VarDecl(std::string identifier, Expression expression)
     :   mIdentifier(std::move(identifier)),
         mExpr(std::move(expression)) {}
 
-    Declaration(std::string identifier) 
+    VarDecl(std::string identifier) 
     :   mIdentifier(std::move(identifier)), 
         mExpr(std::nullopt) {}
 };
+
+struct FuncDecl {
+    std::string mIdentifier;
+    std::vector<std::string> mParams;
+    std::unique_ptr<Block> mBody = nullptr;
+
+    FuncDecl(std::string identifier) 
+    :   mIdentifier(std::move(identifier)) {}
+
+    FuncDecl(std::string identifier, std::vector<std::string> params)
+    :   mIdentifier(std::move(identifier)), mParams(std::move(params)) {}
+
+    FuncDecl(std::string identifier, std::unique_ptr<Block> body)
+    :   mIdentifier(std::move(identifier)), mBody(std::move(body)) {}
+
+    FuncDecl(std::string identifier, std::vector<std::string> params, std::unique_ptr<Block> body)
+    :   mIdentifier(std::move(identifier)), mParams(std::move(params)), mBody(std::move(body)) {}
+
+};
+
+using Declaration = std::variant<VarDecl, FuncDecl>;
 
 // ------------------------------> Statements <------------------------------
 
@@ -245,7 +278,7 @@ struct DoWhile {
     :   mBody(std::move(body)), mCondition(std::move(condition)), mLabel(std::move(label)) {}
 };
 
-using ForInit = std::variant<Declaration, std::optional<Expression>>;
+using ForInit = std::variant<VarDecl, std::optional<Expression>>;
 
 struct For {
     ForInit mForInit;
@@ -301,26 +334,19 @@ struct Block {
     Block(std::vector<BlockItem> item) : mItems(std::move(item)) {}
 };
 
-// ------------------------------> Function Definition <------------------------------
-
-struct Function {
-    std::optional<std::string> mIdentifier;
-    Block mBody;
-
-    Function(std::optional<std::string> identifier, Block body)
-        : mIdentifier(identifier), mBody(std::move(body)) {}
-
-    Function(Block body)
-        : mIdentifier(std::nullopt), mBody(std::move(body)) {}
-};
-
 // ------------------------------> Program Definition <------------------------------
 
 struct Program {
-    Function mFunction;
+    std::vector<FuncDecl> mDeclarations;
 
-    Program(Function function)
-        : mFunction(std::move(function)) {}
+    Program(std::vector<FuncDecl>  declarations)
+        : mDeclarations(std::move(declarations)) {}
+
+    Program() {}
+
+    void addFuncDeclaration(FuncDecl decl) {
+        mDeclarations.emplace_back(std::move(decl));
+    }
 };
 
 }

@@ -21,9 +21,9 @@ inline std::string makeUniqueVarName(const std::string& varName) {
     return std::format("{}.cv{}", varName, tmpRegisterNum++);
 }
 
-// ------------------------------> VariableResolution <------------------------------
+// ------------------------------> IdentifierResolution <------------------------------
 
-struct VariableResolution {
+struct IdentifierResolution {
 
     std::vector<std::unordered_map<std::string, std::string>> mScopes;
     std::vector<std::unordered_set<std::string>> mVarsDeclaredInScope;
@@ -82,6 +82,46 @@ public:
     void operator()(std::optional<Expression>& optionalExpression) const {
         if (optionalExpression.has_value())
             std::visit(*this, optionalExpression.value());
+    }
+
+    void operator()(const FunctionCall& functionCall) const {}
+
+    // Declaration visitor
+    void operator()(Declaration& decl) {
+        std::visit(*this, decl);
+    }
+
+    void operator()(VarDecl& varDecl) {
+        std::string variableName = varDecl.mIdentifier;
+        auto& currentScope = getCurrentScope();
+        auto& currentDeclared = getCurrentDeclared();
+
+        if (currentScope.contains(variableName) && currentDeclared.contains(variableName)) {
+            std::cout << currentScope.contains(variableName) << std::endl;
+            std::cout << currentDeclared.contains(variableName) << std::endl;
+            throw std::runtime_error(std::format("Variable {} has already been declared!", variableName));
+        }
+
+        currentDeclared.insert(variableName);
+
+        std::string uniqueName = makeUniqueVarName(variableName);
+        currentScope.insert_or_assign(variableName, uniqueName);
+
+        // Replace declaration identifier with new name.
+        varDecl.mIdentifier = uniqueName;
+
+        // Correct initializer with new var name if it exists
+        if (varDecl.mExpr.has_value())
+            std::visit(*this, varDecl.mExpr.value());
+    }
+
+    void operator()(FuncDecl& funcDecl) {
+        // Body will always pop the stack back to zero after it's visited, so each new should have a clean stack
+        if (funcDecl.mBody) {
+            if (mScopes.size() > 0)
+                throw std::runtime_error("Nested function definitions are not allowed!");
+            (*this)(*funcDecl.mBody);
+        }
     }
 
     // Statement visitors
@@ -164,31 +204,6 @@ public:
 
     void operator()(const NullStatement& ns) const {}
 
-    // Declaration visitor
-    void operator()(Declaration& declaration) {
-        std::string variableName = declaration.mIdentifier;
-        auto& currentScope = getCurrentScope();
-        auto& currentDeclared = getCurrentDeclared();
-
-        if (currentScope.contains(variableName) && currentDeclared.contains(variableName)) {
-            std::cout << currentScope.contains(variableName) << std::endl;
-            std::cout << currentDeclared.contains(variableName) << std::endl;
-            throw std::runtime_error(std::format("Variable {} has already been declared!", variableName));
-        }
-
-        currentDeclared.insert(variableName);
-
-        std::string uniqueName = makeUniqueVarName(variableName);
-        currentScope.insert_or_assign(variableName, uniqueName);
-
-        // Replace declaration identifier with new name.
-        declaration.mIdentifier = uniqueName;
-
-        // Correct initializer with new var name if it exists
-        if (declaration.mExpr.has_value())
-            std::visit(*this, declaration.mExpr.value());
-    }
-
     void operator()(Block& block) {
 
         // Create scope
@@ -208,14 +223,10 @@ public:
         mVarsDeclaredInScope.pop_back();
     }
 
-    // Function visitor
-    void operator()(Function& func) {
-        (*this)(func.mBody);
-    }
-
     // Program visitor
     void operator()(Program& program) {
-        (*this)(program.mFunction);
+        for (auto& funcDecl : program.mDeclarations)
+            (*this)(funcDecl);
     }
 };
 
@@ -277,8 +288,20 @@ struct ControlFlowLabelling {
 
     void operator()(const Conditional& conditional) const {}
 
+    void operator()(const FunctionCall& functionCall) const {}
+
     // Declaration visitor
-    void operator()(const Declaration& declaration) const {}
+    void operator()(Declaration& decl) {
+        std::visit(*this, decl);
+    }
+
+    void operator()(const VarDecl& varDecl) const {}
+
+    void operator()(FuncDecl& funcDecl) {
+        if (funcDecl.mBody) {
+            (*this)(*funcDecl.mBody);
+        }
+    }
 
     // Statement visitors
     void operator()(Statement& statement) {
@@ -385,14 +408,10 @@ struct ControlFlowLabelling {
         }
     }
 
-    // Function visitor
-    void operator()(Function& func) {
-        (*this)(func.mBody);
-    }
-
     // Program visitor
     void operator()(Program& program) {
-        (*this)(program.mFunction);
+        for (auto& funcDecl : program.mDeclarations)
+            (*this)(funcDecl);
     }
 };
 
@@ -410,6 +429,11 @@ struct LabelResolution {
         }
     }
 
+    void clearNeededAndPresentLabels() {
+        mPresentLabels.clear();
+        mNeededLabels.clear();
+    }
+
     // Expression visitors
     void operator()(const Constant& constant) const {}
 
@@ -424,6 +448,23 @@ struct LabelResolution {
     void operator()(const Crement& crement) const {}
 
     void operator()(const Conditional& conditional) const {}
+
+    void operator()(const FunctionCall& functionCall) const {};
+
+    // Declaration visitor
+    void operator()(Declaration& decl) {
+        std::visit(*this, decl);
+    }
+
+    void operator()(const VarDecl& varDecl) const {}
+
+    void operator()(FuncDecl& funcDecl) {
+        if (funcDecl.mBody) {
+            (*this)(*funcDecl.mBody);
+            checkNeededLabelsInPresentLabels();
+            clearNeededAndPresentLabels();
+        }
+    }
 
     // Statement visitors
     void operator()(Statement& statement) {
@@ -487,9 +528,6 @@ struct LabelResolution {
 
     void operator()(const NullStatement& ns) const {}
 
-    // Declaration visitor
-    void operator()(const Declaration& declaration) const {}
-
     // Block visitor
     void operator()(Block& block) {
         for (BlockItem& blockItem : block.mItems) {
@@ -497,15 +535,10 @@ struct LabelResolution {
         }
     }
 
-    // Function visitor
-    void operator()(Function& func) {
-        (*this)(func.mBody);
-        checkNeededLabelsInPresentLabels();
-    }
-
     // Program visitor
     void operator()(Program& program) {
-        (*this)(program.mFunction);
+        for (auto& funcDecl : program.mDeclarations)
+            (*this)(funcDecl);
     }
 };
 
