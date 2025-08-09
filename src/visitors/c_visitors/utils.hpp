@@ -217,7 +217,7 @@ struct PrintVisitor {
     }
 
     void operator()(const Switch& swtch) const {
-        std::cout << indent() << "Switch (" << swtch.mLabel << "):\n";
+        std::cout << indent() << "Switch: " << swtch.mLabel << std::endl;
         std::cout << indent() << "  Controlling Expression:\n";
         std::visit(PrintVisitor(depth+2), swtch.mSelector);
         std::cout << indent() << "  Switch Body:\n";

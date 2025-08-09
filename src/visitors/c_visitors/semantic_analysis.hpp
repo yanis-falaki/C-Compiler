@@ -23,18 +23,52 @@ inline std::string makeUniqueVarName(const std::string& varName) {
 
 // ------------------------------> IdentifierResolution <------------------------------
 
+struct IdentifierData {
+    std::string mNewName;
+    bool mFromCurrentScope;
+    bool mHasExternalLinkage;
+
+    IdentifierData() = default;
+    IdentifierData(std::string newName, bool fromCurrentScope, bool hasExternalLinkage)
+    :   mNewName(std::move(newName)), mFromCurrentScope(fromCurrentScope), mHasExternalLinkage(hasExternalLinkage) {}
+};
+
 struct IdentifierResolution {
 
-    std::vector<std::unordered_map<std::string, std::string>> mScopes;
-    std::vector<std::unordered_set<std::string>> mVarsDeclaredInScope;
-
-// helper methods
 private:
-    auto& getCurrentScope() { return mScopes.back(); }
-    const auto& getCurrentScope() const { return mScopes.back(); }
-    
-    auto& getCurrentDeclared() { return mVarsDeclaredInScope.back(); }
-    const auto& getCurrentDeclared() const { return mVarsDeclaredInScope.back(); }
+    std::vector<std::unordered_map<std::string, IdentifierData>> mIdentifierMaps;
+
+    // helper methods
+    auto& getCurrentScope() { return mIdentifierMaps.back(); }
+    const auto& getCurrentScope() const { return mIdentifierMaps.back(); }
+
+    void createNewScope() {
+        auto newMap = getCurrentScope();
+        for (auto& [key, identifierData] : newMap) {
+            identifierData.mFromCurrentScope = false;
+        }
+        mIdentifierMaps.push_back(newMap);
+    }
+
+    void exitScope() {
+        mIdentifierMaps.pop_back();
+    };
+
+    bool isGlobalScope() { return mIdentifierMaps.size() == 1; }
+
+    // helper function for both variable declarations and declarations within function parameters
+    void resolveVarDeclName(std::string& variableName) {
+        auto& currentScope = getCurrentScope();
+
+        if (currentScope.contains(variableName) && currentScope[variableName].mFromCurrentScope)
+            throw std::runtime_error(std::format("Variable {} has already been declared!", variableName));
+
+        std::string uniqueName = makeUniqueVarName(variableName);
+        currentScope.insert_or_assign(variableName, IdentifierData(uniqueName, true, false));
+
+        // Replace declaration identifier with new name.
+        variableName = uniqueName;
+    }
 
 public:
     // Expression visitors
@@ -46,7 +80,7 @@ public:
             throw std::runtime_error(std::format("Variable {} is used before it is declared!", variable.mIdentifier));
         }
         
-        variable.mIdentifier = currentScope.at(variable.mIdentifier);
+        variable.mIdentifier = currentScope.at(variable.mIdentifier).mNewName;
     }
 
     void operator()(Unary& unary) const {
@@ -84,7 +118,16 @@ public:
             std::visit(*this, optionalExpression.value());
     }
 
-    void operator()(const FunctionCall& functionCall) const {}
+    void operator()(FunctionCall& functionCall) const {
+        auto& currentScope = getCurrentScope();
+        if (currentScope.contains(functionCall.mIdentifier)) {
+            functionCall.mIdentifier = currentScope.at(functionCall.mIdentifier).mNewName;
+            for (auto& arg : functionCall.mArgs)
+                std::visit(*this, *arg);
+        }
+        else
+            throw std::runtime_error("Undeclared function!");
+    }
 
     // Declaration visitor
     void operator()(Declaration& decl) {
@@ -92,23 +135,7 @@ public:
     }
 
     void operator()(VarDecl& varDecl) {
-        std::string variableName = varDecl.mIdentifier;
-        auto& currentScope = getCurrentScope();
-        auto& currentDeclared = getCurrentDeclared();
-
-        if (currentScope.contains(variableName) && currentDeclared.contains(variableName)) {
-            std::cout << currentScope.contains(variableName) << std::endl;
-            std::cout << currentDeclared.contains(variableName) << std::endl;
-            throw std::runtime_error(std::format("Variable {} has already been declared!", variableName));
-        }
-
-        currentDeclared.insert(variableName);
-
-        std::string uniqueName = makeUniqueVarName(variableName);
-        currentScope.insert_or_assign(variableName, uniqueName);
-
-        // Replace declaration identifier with new name.
-        varDecl.mIdentifier = uniqueName;
+        resolveVarDeclName(varDecl.mIdentifier);
 
         // Correct initializer with new var name if it exists
         if (varDecl.mExpr.has_value())
@@ -116,12 +143,34 @@ public:
     }
 
     void operator()(FuncDecl& funcDecl) {
+        auto& currentScope = getCurrentScope();
+        bool declInGlobalScope = isGlobalScope();
+
+        // Check that another identifier with internal linkage does not exist else throw an error
+        if (currentScope.contains(funcDecl.mIdentifier)) {
+            auto prevEntry = currentScope[funcDecl.mIdentifier];
+            if (prevEntry.mFromCurrentScope && !prevEntry.mHasExternalLinkage)
+                throw std::runtime_error("Function without external linkage declared more than once!");
+        }
+
+        // Add function declaration to current scope if not already
+        currentScope.insert_or_assign(funcDecl.mIdentifier, IdentifierData(funcDecl.mIdentifier, true, true));
+
+        // Enter function scope
+        createNewScope();
+
+        for (auto& varName : funcDecl.mParams)
+            resolveVarDeclName(varName);
+
         // Body will always pop the stack back to zero after it's visited, so each new should have a clean stack
         if (funcDecl.mBody) {
-            if (mScopes.size() > 0)
+            if (!declInGlobalScope)
                 throw std::runtime_error("Nested function definitions are not allowed!");
-            (*this)(*funcDecl.mBody);
+            (*this)(*funcDecl.mBody, true);
         }
+
+        // Exit function scope
+        exitScope();
     }
 
     // Statement visitors
@@ -170,8 +219,7 @@ public:
 
     void operator()(For& forStmt) {
         // Create loop scope
-        mScopes.push_back(getCurrentScope());
-        mVarsDeclaredInScope.push_back(std::unordered_set<std::string>());
+        createNewScope();
 
         // Resolve for init
         std::visit(*this, forStmt.mForInit);
@@ -184,8 +232,7 @@ public:
         std::visit(*this, *forStmt.mBody);
 
         // Destroy loop scope
-        mScopes.pop_back();
-        mVarsDeclaredInScope.pop_back();
+        exitScope();
     }
 
     void operator()(Switch& swtch) {
@@ -204,28 +251,25 @@ public:
 
     void operator()(const NullStatement& ns) const {}
 
-    void operator()(Block& block) {
+    void operator()(Block& block, bool inheritScope = false) {
 
-        // Create scope
-        if (mScopes.size() <= 0)
-            mScopes.push_back(std::unordered_map<std::string, std::string>());
-        else
-            mScopes.push_back(getCurrentScope());
-        
-        mVarsDeclaredInScope.push_back(std::unordered_set<std::string>());
+        // Create scope only if not inheriting
+        if (!inheritScope)
+            createNewScope();
 
-        for (BlockItem& blockItem : block.mItems) {
+        for (BlockItem& blockItem : block.mItems)
             std::visit(*this, blockItem);
-        }
-
-        // Exit scope
-        mScopes.pop_back();
-        mVarsDeclaredInScope.pop_back();
+        
+        // Exit scope only if we created one
+        if (!inheritScope)
+            exitScope();
     }
 
     // Program visitor
     void operator()(Program& program) {
-        for (auto& funcDecl : program.mDeclarations)
+        // Create global scope
+        mIdentifierMaps.push_back(std::unordered_map<std::string, IdentifierData>());
+        for (FuncDecl& funcDecl : program.mDeclarations)
             (*this)(funcDecl);
     }
 };
