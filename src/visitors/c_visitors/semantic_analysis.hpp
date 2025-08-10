@@ -274,6 +274,187 @@ public:
     }
 };
 
+// ------------------------------> Type Checking <------------------------------
+
+struct SymbolInfo {
+    Type mType;
+    bool mDefined; // used for functions
+    bool mHasExternalLinkage;
+    SymbolInfo() = default;
+    SymbolInfo(Type type, bool defined, bool hasExternalLinkage)
+        : mType(std::move(type)), mDefined(defined), mHasExternalLinkage(hasExternalLinkage) {}
+};
+
+struct TypeChecking {
+private:
+    std::unordered_map<std::string, SymbolInfo> mSymbolMap; 
+
+public:
+    // Expression visitors
+    void operator()(const Constant& constant) {}
+
+    void operator()(const Variable& variable) {
+        if (!std::holds_alternative<Int>(mSymbolMap.at(variable.mIdentifier).mType))
+            throw std::runtime_error("Function " + variable.mIdentifier + " used as a variable!");
+    }
+
+    void operator()(const Unary& unary) {
+        std::visit(*this, *unary.mExpr);
+    }
+
+    void operator()(const Binary& binary) {
+        std::visit(*this, *binary.mLeft);
+        std::visit(*this, *binary.mRight);
+    }
+
+    void operator()(const Assignment& assignment) {
+        std::visit(*this, *assignment.mLeft);
+        std::visit(*this, *assignment.mRight);
+    }
+
+    void operator()(const Crement& crement) {      
+        std::visit(*this, *crement.mVar);
+    }
+
+    void operator()(const Conditional& conditional) {
+        std::visit(*this, *conditional.mCondition);
+        std::visit(*this, *conditional.mThen);
+        std::visit(*this, *conditional.mElse);
+    }
+
+    void operator()(const FunctionCall& functionCall) {
+        // guaranteed to be in symbol map as no errors were thrown during identifier resolution, i.e. a declaration is in scope
+        auto symbolInfo = mSymbolMap.at(functionCall.mIdentifier);
+        if (std::holds_alternative<Int>(symbolInfo.mType))
+            throw std::runtime_error("Variable " + functionCall.mIdentifier + " used as a function name!");
+        if (std::get<FuncType>(symbolInfo.mType).mParamCount != functionCall.mArgs.size())
+            throw std::runtime_error("Function " + functionCall.mIdentifier + " with the wrong number of arguments!");
+        for (auto& arg : functionCall.mArgs)
+            std::visit(*this, *arg);
+    }
+
+    void operator()(const std::optional<Expression>& optionalExpression) {
+        if (optionalExpression.has_value())
+            std::visit(*this, optionalExpression.value());
+    }
+
+    // Declaration visitor
+    void operator()(const Declaration& decl) {
+        std::visit(*this, decl);
+    }
+
+    void operator()(const VarDecl& varDecl) {
+        mSymbolMap.insert_or_assign(varDecl.mIdentifier, SymbolInfo(ast::c::Int(), true, false));
+        (*this)(varDecl.mExpr);
+    }
+
+    void operator()(const FuncDecl& funcDecl) {
+        FuncType funcType(funcDecl.mParams.size());
+        bool hasBody = funcDecl.mBody != nullptr;
+        bool alreadyDefined = false;
+
+        if (mSymbolMap.contains(funcDecl.mIdentifier)) {
+            auto symbolInfo = mSymbolMap[funcDecl.mIdentifier];
+            if (!std::holds_alternative<FuncType>(symbolInfo.mType) || (std::get<FuncType>(symbolInfo.mType) != funcType))
+                throw std::runtime_error("Incompatible function declarations!");
+            alreadyDefined = symbolInfo.mDefined;
+            if (alreadyDefined && hasBody)
+                throw std::runtime_error("Function " + funcDecl.mIdentifier + " is defined more than once!");
+        }
+
+        mSymbolMap.insert_or_assign(funcDecl.mIdentifier, SymbolInfo(funcType, hasBody || alreadyDefined, true));
+        
+        if (funcDecl.mBody) {
+            for (const auto& param : funcDecl.mParams)
+                mSymbolMap.insert_or_assign(param, SymbolInfo(Int(), false, false));
+            (*this)(*funcDecl.mBody);
+        }
+    }
+
+    // Statement visitors
+    void operator()(const Statement& statement) {
+        std::visit(*this, statement);
+    }
+
+    void operator()(const Return& rs) {
+        std::visit(*this, rs.mExpr);
+    }
+
+    void operator()(const ExpressionStatement& es) {
+        std::visit(*this, es.mExpr);
+    }
+
+    void operator()(const If& ifStmt) {
+        std::visit(*this, ifStmt.mCondition);
+        std::visit(*this, *ifStmt.mThen);
+        if (ifStmt.mElse.has_value())
+            std::visit(*this, *ifStmt.mElse.value());
+    }
+
+    void operator()(const GoTo& gotoStmt) {}
+
+    void operator()(const LabelledStatement& labelledStmt) {
+        std::visit(*this, *labelledStmt.mStatement);
+    }
+
+    void operator()(const CompoundStatement& compoundStmt) {
+        (*this)(*compoundStmt.mCompound);
+    }
+
+    void operator()(const Break& brk) {}
+
+    void operator()(const Continue& cont) {}
+
+    void operator()(const While& whileStmt) {
+        std::visit(*this, whileStmt.mCondition);
+        std::visit(*this, *whileStmt.mBody);
+    }
+
+    void operator()(const DoWhile& doWhile) {
+        std::visit(*this, doWhile.mCondition);
+        std::visit(*this, *doWhile.mBody);
+    }
+
+    void operator()(const For& forStmt) {
+        // Resolve for init
+        std::visit(*this, forStmt.mForInit);
+
+        // Resolve optional expressions
+        (*this)(forStmt.mCondition);
+        (*this)(forStmt.mPost);
+
+        // Resolve loop body
+        std::visit(*this, *forStmt.mBody);
+    }
+
+    void operator()(const Switch& swtch) {
+        std::visit(*this, swtch.mSelector);
+        std::visit(*this, *swtch.mBody);
+    }
+
+    void operator()(const Case& caseStmt) {
+        std::visit(*this, caseStmt.mCondition);
+        std::visit(*this, *caseStmt.mStmt);
+    }
+
+    void operator()(const Default& defaultStmt) {
+        std::visit(*this, *defaultStmt.mStmt);
+    }
+
+    void operator()(const NullStatement& ns) {}
+
+    void operator()(const Block& block) {
+        for (auto& blockItem : block.mItems)
+            std::visit(*this, blockItem);
+    }
+
+    // Program visitor
+    void operator()(const Program& program) {
+        for (auto& funcDecl : program.mDeclarations)
+            (*this)(funcDecl);
+    }
+};
+
 // ------------------------------> ControlFlow Labelling <------------------------------
 
 // ------------------------------> Helper functions <------------------------------

@@ -46,6 +46,8 @@ binary_operator = Add | Subtract | Divide | Remainder
                 | Bitwise_AND | Bitwise_OR | Bitwise_XOR
                 | Logical_AND | Logical_OR | Equal_to | Not_Equal
                 | Less_Than | Greater_Than | Less_Or_Equal | Greater_Or_Equal
+
+type = Int | FuncType(int param_count)
 ```
 
 ## Formal Grammar (Extended Backus-Naur Form)

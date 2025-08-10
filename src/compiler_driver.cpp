@@ -138,6 +138,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     // Validate C AST
     compiler::ast::c::IdentifierResolution()(program);
+    compiler::ast::c::TypeChecking()(program);
     compiler::ast::c::ControlFlowLabelling()(program);
     compiler::ast::c::LabelResolution()(program);
     if (args.count("validate")) {
