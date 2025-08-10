@@ -152,6 +152,10 @@ struct TackyToAsmb {
         mInstructions.emplace_back(ast::asmb::Label(label.mIdentifier));
     }
 
+    void operator()(const ast::tacky::FuncCall& funcCall) {
+        return;
+    }
+
     // Function visitor
     ast::asmb::Function operator()(const ast::tacky::Function &func) {
         for (auto& instruction : func.mBody) {
@@ -162,7 +166,7 @@ struct TackyToAsmb {
 
     // Program visitor
     ast::asmb::Program operator()(const ast::tacky::Program &program) {
-        return ast::asmb::Program((*this)(program.mFunction));
+        return ast::asmb::Program((*this)(program.mFunctions[0]));
     }
 };
     

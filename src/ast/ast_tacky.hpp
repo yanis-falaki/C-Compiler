@@ -155,24 +155,35 @@ struct Label {
     Label(std::string identifier) : mIdentifier(std::move(identifier)) {}
 };
 
-using Instruction = std::variant<Return, Unary, Binary, Copy, Jump, JumpIfZero, JumpIfNotZero, JumpIfEqual, Label>;
+struct FuncCall {
+    std::string mIdentifier;
+    std::vector<Val> mArgs;
+    Val mDst;
+
+    FuncCall(std::string identifier, std::vector<Val> args, Val dst)
+        :   mIdentifier(std::move(identifier)), mArgs(std::move(args)), mDst(std::move(dst)) {}
+};
+
+using Instruction = std::variant<Return, Unary, Binary, Copy, Jump, JumpIfZero, JumpIfNotZero, JumpIfEqual, Label, FuncCall>;
 
 // ------------------------------> Function Definition <------------------------------
 
 struct Function {
     std::string mIdentifier;
+    std::vector<std::string> mParams;
     std::vector<Instruction> mBody;
 
-    Function(std::string identifier, std::vector<Instruction> body) : 
+    Function(std::string identifier, std::vector<std::string> params, std::vector<Instruction> body) : 
         mIdentifier(std::move(identifier)),
+        mParams(std::move(params)),
         mBody(std::move(body)) {}
 };
 
 // ------------------------------> Program  <------------------------------
 
 struct Program {
-    Function mFunction;
-    Program(Function function) : mFunction(std::move(function)) {}
+    std::vector<Function> mFunctions;
+    Program(std::vector<Function> functions) : mFunctions(std::move(functions)) {}
 };
 
 }

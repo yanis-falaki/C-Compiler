@@ -109,9 +109,9 @@ type = Int | FuncType(int param_count)
 
 # Tacky IR ASDL
 ```
-program = Program(function_definition)
+program = Program(function_definition*)
 
-function_definition = Function(identifier, instruction* body)
+function_definition = Function(identifier, identifier* params, instruction* body)
 
 instruction = Return(val)
             | Unary(unary_operator, val src, val dst)
@@ -121,6 +121,7 @@ instruction = Return(val)
             | JumpIfZero(val condition, identifier target)
             | JumpIfNotZero(val condition, identifier target)
             | Label(identifier)
+            | FuncCall(identifier func_name, val* args, val dst)
 
 val = Constant(int) | Var(identifier)
 

@@ -229,7 +229,14 @@ struct CToTacky {
     }
 
     ast::tacky::Val operator()(const ast::c::FunctionCall& functionCall) {
-        return ast::tacky::Constant(0);
+        std::vector<ast::tacky::Val> argValues;
+        for (auto& arg : functionCall.mArgs) {
+            ast::tacky::Val argResult = std::visit(*this, *arg);
+            argValues.push_back(argResult);
+        }
+        auto result = makeTemporaryRegister();
+        mInstructions.emplace_back(ast::tacky::FuncCall(functionCall.mIdentifier, std::move(argValues), result));
+        return result;
     }
 
     // optional expression
@@ -254,12 +261,9 @@ struct CToTacky {
     }
 
     void operator()(const ast::c::FuncDecl& funcDecl) {
-        if (funcDecl.mBody) {
-            (*this)(*funcDecl.mBody);
-            mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
-        }
-
-        //return ast::tacky::Function(funcDecl.mIdentifier, std::move(mInstructions));
+        if (!funcDecl.mBody) return;
+        (*this)(*funcDecl.mBody);
+        mInstructions.emplace_back(ast::tacky::Return(ast::tacky::Constant(0)));
     }
 
     // Statement visitors
@@ -417,8 +421,16 @@ struct CToTacky {
 
     // Program visitor
     ast::tacky::Program operator()(const ast::c::Program& program) {
-        return ast::tacky::Program(ast::tacky::Function("", std::vector<ast::tacky::Instruction>()));
-        //return ast::tacky::Program((*this)(program.mFunction));
+        std::vector<ast::tacky::Function> functions;
+        for (auto& function : program.mDeclarations) {
+            // generate instructions, skip if there isn't a body
+            if (!function.mBody)
+                continue;
+            (*this)(function);
+            functions.emplace_back(function.mIdentifier, function.mParams, std::move(mInstructions));
+            mInstructions.clear();
+        }
+        return ast::tacky::Program(std::move(functions));
     }
 };
 

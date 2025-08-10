@@ -95,18 +95,37 @@ struct PrintVisitor {
         std::cout << indent() << "Label: " << label.mIdentifier << std::endl;
     }
 
+    void operator()(const FuncCall& funcCall) const {
+        std::cout << indent() << "Function Call: " << funcCall.mIdentifier << std::endl;
+        std::cout << indent() << "  Arguments:\n";
+        for (auto& arg : funcCall.mArgs)
+            std::visit(PrintVisitor(depth+2), arg);
+        std::cout << "  Destination:\n";
+        std::visit(PrintVisitor(depth+2), funcCall.mDst);
+    }
+
     // Function visitor
     void operator()(const Function& func) {
-        std::string indent = std::string(depth * 2, ' ');
-        std::cout << indent << "Function " << func.mIdentifier << ":\n";
+        std::cout << indent() << "Function " << func.mIdentifier << ":\n";
+        if (func.mParams.size() <= 0)
+            std::cout << indent() << "  No Parameters\n";
+        else {
+            std::cout << indent() << "  Parameters:\n";
+            std::cout << indent() << "    ";
+            for (const auto& param : func.mParams)
+                std::cout << param << ",    ";
+            std::cout << std::endl;
+        }
+        std::cout << indent() << "  Instructions:\n";
         for (const auto& instruction : func.mBody) {
-            std::visit(PrintVisitor{depth+1}, instruction);
+            std::visit(PrintVisitor{depth+2}, instruction);
         }
     }
 
     // Program visitor
     void operator()(const Program& program) {
-        (*this)(program.mFunction);
+        for (const auto& function : program.mFunctions)
+            (*this)(function);
     }
 };
 
