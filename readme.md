@@ -54,7 +54,7 @@ There's still quite a lot to do, below is my todo list:
 - [x] Compound Statements
 - [x] Loops
 - [x] Switch statements
-- [ ] Functions (Aside from main)
+- [x] Functions (Aside from main)
 - [ ] File Scope Variable Declarations and Storage-Class Specifiers
 
 ### Types Beyond Int
