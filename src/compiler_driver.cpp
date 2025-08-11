@@ -171,7 +171,7 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
 
     // Write assembly to file
     std::ofstream out(dest_path);
-    out << compiler::codegen::EmitAsmbVisitor()(asmb);
+    out << (compiler::codegen::EmitAsmbVisitor(symbolMap))(asmb);
     out.close();
 
     return fs::path(dest_path);

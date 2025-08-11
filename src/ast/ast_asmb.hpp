@@ -88,6 +88,7 @@ enum class RegisterName {
 };
 
 enum class RegisterSize {
+    QWORD,
     DWORD,
     BYTE
 };
@@ -95,25 +96,70 @@ enum class RegisterSize {
 constexpr std::string_view reg_name_to_string(RegisterName op, RegisterSize size = RegisterSize::DWORD) {
     switch (op) {
         case RegisterName::AX:
-            return (size == RegisterSize::BYTE) ? "\%al" : "\%eax";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%rax";
+                case RegisterSize::DWORD: return "\%eax";
+                case RegisterSize::BYTE: return "\%al";
+            }
+            break;
         case RegisterName::CX:
-            return (size == RegisterSize::BYTE) ? "\%cl" : "\%ecx";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%rcx";
+                case RegisterSize::DWORD: return "\%ecx";
+                case RegisterSize::BYTE: return "\%cl";
+            }
+            break;
         case RegisterName::DX:
-            return (size == RegisterSize::BYTE) ? "\%dl" : "\%edx";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%rdx";
+                case RegisterSize::DWORD: return "\%edx";
+                case RegisterSize::BYTE: return "\%dl";
+            }
+            break;
         case RegisterName::DI:
-            return (size == RegisterSize::BYTE) ? "\%dil" : "\%edi";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%rdi";
+                case RegisterSize::DWORD: return "\%edi";
+                case RegisterSize::BYTE: return "\%dil";
+            }
+            break;
         case RegisterName::SI:
-            return (size == RegisterSize::BYTE) ? "\%sil" : "\%esi";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%rsi";
+                case RegisterSize::DWORD: return "\%esi";
+                case RegisterSize::BYTE: return "\%sil";
+            }
+            break;
         case RegisterName::R8:
-            return (size == RegisterSize::BYTE) ? "%r8b" : "%r8d";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%r8";
+                case RegisterSize::DWORD: return "\%r8d";
+                case RegisterSize::BYTE: return "\%r8b";
+            }
+            break;
         case RegisterName::R9:
-            return (size == RegisterSize::BYTE) ? "%r9b" : "%r9d";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%r9";
+                case RegisterSize::DWORD: return "\%r9d";
+                case RegisterSize::BYTE: return "\%r9b";
+            }
+            break;
         case RegisterName::R10:
-            return (size == RegisterSize::BYTE) ? "%r10b" : "%r10d";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%r10";
+                case RegisterSize::DWORD: return "\%r10d";
+                case RegisterSize::BYTE: return "\%r10b";
+            }
+            break;
         case RegisterName::R11:
-            return (size == RegisterSize::BYTE) ? "%r11b" : "%r11d";
+            switch (size) {
+                case RegisterSize::QWORD: return "\%r11";
+                case RegisterSize::DWORD: return "\%r11d";
+                case RegisterSize::BYTE: return "\%r11b";
+            }
+            break;
     }
-    throw std::invalid_argument("Unhandled RegisterName in reg_name_to_string");
+    throw std::invalid_argument("Unhandled RegisterName or RegisterSize in reg_name_to_string");
 }
 
 constexpr std::array<asmb::RegisterName, 6> ARG_REGISTERS = {

@@ -635,11 +635,14 @@ struct ControlFlowLabelling {
 };
 
 // ------------------------------> LabelResolution <------------------------------
-
+// rename labels so that they dont conflict between functions
+// make sure all labels exist within a function if they're used
 struct LabelResolution {
 
     std::unordered_set<std::string> mPresentLabels;
     std::unordered_set<std::string> mNeededLabels;
+
+    int32_t functionCounter = 0;
 
     void checkNeededLabelsInPresentLabels() const {
         for (auto& label : mNeededLabels) {
@@ -694,26 +697,30 @@ struct LabelResolution {
 
     void operator()(const ExpressionStatement& es) const {}
 
-    void operator()(const If& ifStmt) {
+    void operator()(If& ifStmt) {
         std::visit(*this, *ifStmt.mThen);
         if (ifStmt.mElse.has_value())
             std::visit(*this, *ifStmt.mElse.value());
     }
 
-    void operator()(const GoTo& gotoStmt) {
+    void operator()(GoTo& gotoStmt) {
+        std::string newLabel = std::format("{}.fl{}", gotoStmt.mTarget, functionCounter);
+        gotoStmt.mTarget = newLabel;
         if (!mNeededLabels.contains(gotoStmt.mTarget))
             mNeededLabels.insert(gotoStmt.mTarget);
     }
 
-    void operator()(const LabelledStatement& labelledStmt) {
-        if (mPresentLabels.contains(labelledStmt.mIdentifier))
+    void operator()(LabelledStatement& labelledStmt) {
+        std::string newLabel = std::format("{}.fl{}", labelledStmt.mIdentifier, functionCounter);
+        if (mPresentLabels.contains(newLabel))
             throw std::runtime_error(std::format("Label: {} already declared!", labelledStmt.mIdentifier));
         
-        mPresentLabels.insert(labelledStmt.mIdentifier);
+        mPresentLabels.insert(newLabel);
+        labelledStmt.mIdentifier = newLabel;
         std::visit(*this, *labelledStmt.mStatement);
     }
 
-    void operator()(const CompoundStatement& compoundStmt) {
+    void operator()(CompoundStatement& compoundStmt) {
         (*this)(*compoundStmt.mCompound);
     }
 
@@ -721,27 +728,27 @@ struct LabelResolution {
 
     void operator()(const Continue& cont) const {}
 
-    void operator()(const While& whileStmt) {
+    void operator()(While& whileStmt) {
         std::visit(*this, *whileStmt.mBody);
     }
 
-    void operator()(const DoWhile& doWhile) {
+    void operator()(DoWhile& doWhile) {
         std::visit(*this, *doWhile.mBody);
     }
 
-    void operator()(const For& forStmt) {
+    void operator()(For& forStmt) {
         std::visit(*this, *forStmt.mBody);
     }
 
-    void operator()(const Switch& swtch) {
+    void operator()(Switch& swtch) {
         std::visit(*this, *swtch.mBody);
     }
 
-    void operator()(const Case& caseStmt) {
+    void operator()(Case& caseStmt) {
         std::visit(*this, *caseStmt.mStmt);
     }
 
-    void operator()(const Default& defaultStmt) {
+    void operator()(Default& defaultStmt) {
         std::visit(*this, *defaultStmt.mStmt);
     }
 
@@ -756,8 +763,10 @@ struct LabelResolution {
 
     // Program visitor
     void operator()(Program& program) {
-        for (auto& funcDecl : program.mDeclarations)
+        for (auto& funcDecl : program.mDeclarations) {
             (*this)(funcDecl);
+            functionCounter += 1;
+        }
     }
 };
 

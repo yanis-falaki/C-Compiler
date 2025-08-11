@@ -230,7 +230,8 @@ struct FixUpAsmbInstructions {
         mInstructions = &func.mInstructions;
         mInstructionCounter = 0;
 
-        // Add AllocateStack instruction
+        // Add AllocateStack instruction rounded to nearest 16 for alignment
+        stackSize = ((stackSize + 16 - 1) / 16) * 16;
         asmb::AllocateStack allocateStackInstruction(stackSize);
         mInstructions->emplace(mInstructions->begin(), allocateStackInstruction);
 
@@ -253,73 +254,79 @@ struct FixUpAsmbInstructions {
 
 struct EmitAsmbVisitor {
 
+private:
+    const SymbolMapType& mSymbolMap;
+
+public:
+    EmitAsmbVisitor(const SymbolMapType& symbolMap) : mSymbolMap(symbolMap) {}
+
     // Operand visitors
-    std::string operator() (const asmb::Imm& imm) const {
+    std::string operator() (const asmb::Imm& imm) {
         return std::format("${}", imm.mValue);
     }
 
-    std::string operator() (const asmb::Reg& reg) const {
-        return std::string(asmb::reg_name_to_string(reg.mReg));
+    std::string operator() (const asmb::Reg& reg, asmb::RegisterSize registerSize = asmb::RegisterSize::DWORD) {
+        return std::string(asmb::reg_name_to_string(reg.mReg, registerSize));
     }
 
-    std::string operator() (const asmb::Pseudo& pseudo) const {
+    std::string operator() (const asmb::Pseudo& pseudo) {
         // should not have any pseudo registers.
         throw std::runtime_error("Pseudo operand in tree during EmitAsmbVisitor");
     }
 
-    std::string operator() (const asmb::Stack& stack) const {
+    std::string operator() (const asmb::Stack& stack) {
         return std::format("{}(%rbp)", stack.mLocation);
     }
 
     // Instruction visitors
-    std::string operator() (const asmb::Mov& mov) const {
+    std::string operator() (const asmb::Mov& mov) {
         return std::format("movl {}, {}", std::visit(*this, mov.mSrc), std::visit(*this, mov.mDst));
     }
 
-    std::string operator() (const asmb::Ret& ret) const {
+    std::string operator() (const asmb::Ret& ret) {
         return "movq %rbp, %rsp\n\tpopq %rbp\n\tret";
     }
 
-    std::string operator() (const asmb::Unary& unary) const {
+    std::string operator() (const asmb::Unary& unary) {
         return std::format("{} {}", asmb::unary_op_to_instruction(unary.mOp), std::visit(*this, unary.mOperand));
     }
 
-    std::string operator() (const asmb::Binary& binary) const {
+    std::string operator() (const asmb::Binary& binary) {
         return std::format("{} {}, {}",
                             asmb::binary_op_to_instruction(binary.mOp),
                             std::visit(*this, binary.mOperand1),
                             std::visit(*this, binary.mOperand2));
     }
 
-    std::string operator() (const asmb::Idiv& idiv) const {
+    std::string operator() (const asmb::Idiv& idiv) {
         return std::format("idivl {}", std::visit(*this, idiv.mOperand));
     }
 
-    std::string operator() (const asmb::Cdq& cdq) const {
+    std::string operator() (const asmb::Cdq& cdq) {
         return "Cdq";
     }
 
-    std::string operator() (const asmb::AllocateStack& allocateStack) const {
+    std::string operator() (const asmb::AllocateStack& allocateStack) {
         return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
 
     std::string operator()(const asmb::DeallocateStack& deallocateStack) {
-        return "";
+       return std::format("addq ${}, %rsp", deallocateStack.mValue);
     }
 
-    std::string operator()(const asmb::Cmp& cmp) const {
+    std::string operator()(const asmb::Cmp& cmp) {
         return std::format("cmpl {}, {}", std::visit(*this, cmp.mOperand1), std::visit(*this, cmp.mOperand2));
     }
 
-    std::string operator()(const asmb::Jmp& jmp) const {
+    std::string operator()(const asmb::Jmp& jmp) {
         return std::format("jmp .L{}", jmp.mIdentifier);
     }
 
-    std::string operator()(const asmb::JmpCC& jmpCC) const {
+    std::string operator()(const asmb::JmpCC& jmpCC) {
         return std::format("j{} .L{}", asmb::condition_code_to_string(jmpCC.mCondCode), jmpCC.mIdentifier);
     }
 
-    std::string operator()(const asmb::SetCC& setCC) const {
+    std::string operator()(const asmb::SetCC& setCC) {
         std::string_view dstString;
         // Can't use visitor on register as we need 1 byte name.
         if (std::holds_alternative<asmb::Reg>(setCC.mDst))
@@ -334,21 +341,29 @@ struct EmitAsmbVisitor {
             dstString);
     }
 
-    std::string operator()(const asmb::Label& label) const {
+    std::string operator()(const asmb::Label& label) {
         return std::format(".L{}:", label.mIdentifier);
     }
 
-    std::string operator()(const asmb::Push& push) const {
-        return "";
+    std::string operator()(const asmb::Push& push) {
+        std::string pushOperand;
+        // If operand is a register it must use quad alias
+        if (std::holds_alternative<asmb::Reg>(push.mOperand))
+            pushOperand = (*this)(std::get<asmb::Reg>(push.mOperand), asmb::RegisterSize::QWORD);
+        else
+            pushOperand = std::visit(*this, push.mOperand);
+        return "pushq " + pushOperand;
     }
 
-    std::string operator()(const asmb::Call& call) const {
-        return "";
+    std::string operator()(const asmb::Call& call) {
+        if (mSymbolMap.at(call.mFuncName).mDefined)
+            return "call " + call.mFuncName;
+        else
+            return "call " + call.mFuncName + "@PLT";
     }
 
     // Function visitor
-    std::string operator()(const asmb::Function& function) {
-        std::stringstream ss;
+    void operator()(const asmb::Function& function, std::stringstream& ss) {   
         ss << ".globl " << function.mIdentifier << std::endl;
         ss << function.mIdentifier << ":\n";
         ss << "\tpushq %rbp\n" << "\tmovq %rsp, %rbp\n";
@@ -356,14 +371,17 @@ struct EmitAsmbVisitor {
         for (auto& instruction : function.mInstructions) {
             ss << "\t" << std::visit(*this, instruction) << "\n";
         }
-    
-        return ss.str();
     }
 
     // Program
     std::string operator()(const asmb::Program& program) {
-        return "";
-        //return std::format("{}\n.section .note.GNU-stack,\"\",@progbits\n", (*this)(program.mFunction));
+        std::stringstream ss;
+        for (auto& function : program.mFunctions) {
+            (*this)(function, ss);
+            ss << "\n";
+        }
+        ss << ".section .note.GNU-stack,\"\",@progbits\n";
+        return ss.str();
     }
 };
 
