@@ -77,8 +77,12 @@ constexpr std::string_view binary_op_to_instruction(BinaryOperator op) {
 
 enum class RegisterName {
     AX,
-    DX,
     CX,
+    DX,
+    DI,
+    SI,
+    R8,
+    R9,
     R10,
     R11
 };
@@ -92,10 +96,18 @@ constexpr std::string_view reg_name_to_string(RegisterName op, RegisterSize size
     switch (op) {
         case RegisterName::AX:
             return (size == RegisterSize::BYTE) ? "\%al" : "\%eax";
-        case RegisterName::DX:
-            return (size == RegisterSize::BYTE) ? "\%dl" : "\%edx";
         case RegisterName::CX:
             return (size == RegisterSize::BYTE) ? "\%cl" : "\%ecx";
+        case RegisterName::DX:
+            return (size == RegisterSize::BYTE) ? "\%dl" : "\%edx";
+        case RegisterName::DI:
+            return (size == RegisterSize::BYTE) ? "\%dil" : "\%edi";
+        case RegisterName::SI:
+            return (size == RegisterSize::BYTE) ? "\%sil" : "\%esi";
+        case RegisterName::R8:
+            return (size == RegisterSize::BYTE) ? "%r8b" : "%r8d";
+        case RegisterName::R9:
+            return (size == RegisterSize::BYTE) ? "%r9b" : "%r9d";
         case RegisterName::R10:
             return (size == RegisterSize::BYTE) ? "%r10b" : "%r10d";
         case RegisterName::R11:
@@ -103,6 +115,15 @@ constexpr std::string_view reg_name_to_string(RegisterName op, RegisterSize size
     }
     throw std::invalid_argument("Unhandled RegisterName in reg_name_to_string");
 }
+
+constexpr std::array<asmb::RegisterName, 6> ARG_REGISTERS = {
+    asmb::RegisterName::DI,
+    asmb::RegisterName::SI,
+    asmb::RegisterName::DX,
+    asmb::RegisterName::CX,
+    asmb::RegisterName::R8,
+    asmb::RegisterName::R9,
+};
 
 // ------------------------------> ConditionCode <------------------------------
 
@@ -153,10 +174,6 @@ using Operand = std::variant<Imm, Reg, Pseudo, Stack>;
 
 // ------------------------------> Instructions <------------------------------
 
-struct Ret {
-    // No members needed for ret instruction
-};
-
 struct Mov {
     Operand mSrc;
     Operand mDst;
@@ -188,7 +205,12 @@ struct Cdq {};
 
 struct AllocateStack {
     uint32_t mValue;
-    AllocateStack(int32_t value) : mValue(value) {}
+    AllocateStack(uint32_t value) : mValue(value) {}
+};
+
+struct DeallocateStack {
+    uint32_t mValue;
+    DeallocateStack(uint32_t value) : mValue(value) {}
 };
 
 struct Cmp {
@@ -223,24 +245,40 @@ struct Label {
     Label(std::string identifier) : mIdentifier(std::move(identifier)) {}
 };
 
-using Instruction = std::variant<Ret, Mov, Unary, Binary, Idiv, Cdq, AllocateStack,
-                                 Cmp, Jmp, JmpCC, SetCC, Label>;
+struct Push {
+    Operand mOperand;
+    Push(Operand operand) : mOperand(operand) {}
+};
+
+struct Call {
+    std::string mFuncName;
+    Call(std::string funcName) : mFuncName(std::move(funcName)) {}
+};
+
+struct Ret {
+    // No members needed for ret instruction
+};
+
+
+using Instruction = std::variant<Mov, Unary, Binary, Idiv, Cdq, 
+                                 AllocateStack, DeallocateStack, Cmp, Jmp,
+                                 JmpCC, SetCC, Label, Push, Call, Ret >;
 
 // ------------------------------> Function Definition <------------------------------
 
 struct Function {
-    std::optional<std::string> mIdentifier;
+    std::string mIdentifier;
     std::vector<Instruction> mInstructions;
     
-    Function(std::optional<std::string> identifier, std::vector<Instruction> instructions)
+    Function(std::string identifier, std::vector<Instruction> instructions)
         : mIdentifier(std::move(identifier)), mInstructions(std::move(instructions)) {}
 };
 
 // ------------------------------> Program <------------------------------
 
 struct Program {
-    Function mFunction;
-    Program(Function function) : mFunction(std::move(function)) {}
+    std::vector<Function> mFunctions;
+    Program(std::vector<Function> functions) : mFunctions(std::move(functions)) {}
 };
 
 }

@@ -40,10 +40,6 @@ struct PrintVisitor {
     }
     
     // Instruction visitors
-    void operator()(const Ret& ret) const {
-        std::cout << indent() << "Ret" << std::endl;
-    }
-    
     void operator()(const Mov& mov) const {
         std::cout << indent() << "Mov:" << std::endl;
         std::cout << indent() << "  Source:" << std::endl;
@@ -78,6 +74,10 @@ struct PrintVisitor {
 
     void operator()(const AllocateStack& allocateStack) const {
         std::cout << indent() << "Allocate Stack: " << allocateStack.mValue << std::endl;
+    }
+
+    void operator()(const DeallocateStack& deallocateStack) const {
+        std::cout << indent() << "Deallocate Stack: " << deallocateStack.mValue << std::endl;
     }
 
     void operator()(const Cmp& cmp) const {
@@ -117,14 +117,22 @@ struct PrintVisitor {
         std::cout << indent() << "Label: " << label.mIdentifier << std::endl;
     }
 
+    void operator()(const Push& push) const {
+        std::cout << indent() << "Push:\n";
+        std::visit(PrintVisitor(depth+1), push.mOperand);
+    }
+
+    void operator()(const Call& call) const {
+        std::cout << indent() << "Call: " << call.mFuncName << std::endl;
+    }
+
+    void operator()(const Ret& ret) const {
+        std::cout << indent() << "Ret" << std::endl;
+    }
+
     // Function visitor
     void operator()(const Function& func) {
-        if (func.mIdentifier.has_value()) {
-            std::cout << indent() << "Function " << func.mIdentifier.value() << ":" << std::endl;
-        } else {
-            std::cout << indent() << "Function:" << std::endl;
-        }
-        
+        std::cout << indent() << "Function " << func.mIdentifier << ":" << std::endl;
         for (const auto& instruction : func.mInstructions) {
             std::visit(PrintVisitor{depth + 1}, instruction);
         }
@@ -132,7 +140,8 @@ struct PrintVisitor {
 
     // Program visitor
     void operator()(const Program& program) {
-        (*this)(program.mFunction);
+        for (auto& function : program.mFunctions)
+            (*this)(function);
     }
 };
 

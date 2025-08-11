@@ -8,6 +8,8 @@
 
 namespace compiler::codegen {
 
+using namespace ast;
+
 // ------------------------------> Replace PseudoRegisters (1st Pass) <------------------------------
 
 struct ReplacePseudoRegisters {
@@ -16,132 +18,129 @@ struct ReplacePseudoRegisters {
     int32_t mLastStackLocation = 0;
     
     // Operand visitors
-    ast::asmb::Operand operator()(const ast::asmb::Imm& imm) const {
+    asmb::Operand operator()(const asmb::Imm& imm) const {
         return imm;
     }
     
-    ast::asmb::Operand operator()(const ast::asmb::Reg& reg) const {
+    asmb::Operand operator()(const asmb::Reg& reg) const {
         return reg;
     }
 
-    ast::asmb::Operand operator()(const ast::asmb::Pseudo& pseudo) {
+    asmb::Operand operator()(const asmb::Pseudo& pseudo) {
         if (mMap.contains(pseudo.mName))
-            return ast::asmb::Stack(mMap[pseudo.mName]);
+            return asmb::Stack(mMap[pseudo.mName]);
         // else
         mLastStackLocation -= 4;
         mMap.emplace(pseudo.mName, mLastStackLocation);
-        return ast::asmb::Stack(mLastStackLocation);
+        return asmb::Stack(mLastStackLocation);
     }
 
-    ast::asmb::Operand operator()(const ast::asmb::Stack& stack) const {
+    asmb::Operand operator()(const asmb::Stack& stack) const {
         return stack;
     }
     
     // Instruction visitors
-    void operator()(const ast::asmb::Ret& ret) const {}
-    
-    void operator()(ast::asmb::Mov& mov) {
+    void operator()(asmb::Mov& mov) {
         mov.mSrc = std::visit(*this, mov.mSrc);
         mov.mDst = std::visit(*this, mov.mDst);
     }
 
-    void operator()(ast::asmb::Unary& unary) {
+    void operator()(asmb::Unary& unary) {
         unary.mOperand = std::visit(*this, unary.mOperand);
     }
 
-    void operator()(ast::asmb::Binary& binary) {
+    void operator()(asmb::Binary& binary) {
         binary.mOperand1 = std::visit(*this, binary.mOperand1);
         binary.mOperand2 = std::visit(*this, binary.mOperand2);
     }
 
-    void operator()(ast::asmb::Idiv& idiv) {
+    void operator()(asmb::Idiv& idiv) {
         idiv.mOperand = std::visit(*this, idiv.mOperand);
     }
 
-    void operator()(const ast::asmb::Cdq& cdq) const {}
+    void operator()(const asmb::Cdq& cdq) const {}
 
-    void operator()(const ast::asmb::AllocateStack& allocateStack) const {
+    void operator()(const asmb::AllocateStack& allocateStack) const {
     }
 
-    void operator()(ast::asmb::Cmp& cmp) {
+    void operator()(const asmb::DeallocateStack& deallocateStack) const {}
+
+    void operator()(asmb::Cmp& cmp) {
         cmp.mOperand1 = std::visit(*this, cmp.mOperand1);
         cmp.mOperand2 = std::visit(*this, cmp.mOperand2);
     }
 
-    void operator()(const ast::asmb::Jmp& jmp) const {}
-    void operator()(const ast::asmb::JmpCC& jmpCC) const {}
+    void operator()(const asmb::Jmp& jmp) const {}
+    void operator()(const asmb::JmpCC& jmpCC) const {}
 
-    void operator()(ast::asmb::SetCC& setCC) {
+    void operator()(asmb::SetCC& setCC) {
         setCC.mDst = std::visit(*this, setCC.mDst);
     }
 
-    void operator()(const ast::asmb::Label& label) const {}
+    void operator()(const asmb::Label& label) const {}
+
+    void operator()(const asmb::Push& push) const {}
+
+    void operator()(const asmb::Call& call) const {}
+
+    void operator()(const asmb::Ret& ret) const {}
 
     // Function visitor
-    uint32_t operator()(ast::asmb::Function& func) {
+    void operator()(asmb::Function& func, SymbolInfo& symbolInfo) {
+        mLastStackLocation = 0;
+        mMap.clear();
+
         for (auto& instruction : func.mInstructions) {
             std::visit(*this, instruction);
         }
-        return std::abs(mLastStackLocation);
+        symbolInfo.mStackSize = std::abs(mLastStackLocation);
     }
 
     // Program visitor
-    uint32_t operator()(ast::asmb::Program& program) {
-        (*this)(program.mFunction);
-        return std::abs(mLastStackLocation);
+    void operator()(asmb::Program& program, SymbolMapType& symbolMap) {
+        for (auto& function : program.mFunctions)
+            (*this)(function, symbolMap.at(function.mIdentifier));
     }
 };
 
 // ------------------------------> Fix up ASMB instructions (2nd Pass) <------------------------------
 
 struct FixUpAsmbInstructions {
-    std::vector<ast::asmb::Instruction>* mInstructions = nullptr;
+    std::vector<asmb::Instruction>* mInstructions = nullptr;
     size_t mInstructionCounter = 0;
-    uint32_t mStackSize;
-
-    // Force visitor to have stackSize parameter.
-    FixUpAsmbInstructions() = delete;
-    FixUpAsmbInstructions(uint32_t stackSize) : mStackSize(stackSize) {}
 
     // Operand visitors
-    void operator()(const ast::asmb::Imm& imm) const {
-    }
-    
-    void operator()(const ast::asmb::Reg& reg) const {
-    }
-
-    void operator()(const ast::asmb::Pseudo& pseudo) const {
-    }
-
-    void operator()(const ast::asmb::Stack& stack) const {
-    }
+    void operator()(const asmb::Imm& imm) const {}
+    void operator()(const asmb::Reg& reg) const {}
+    void operator()(const asmb::Pseudo& pseudo) const {}
+    void operator()(const asmb::Stack& stack) const {}
     
     // Instruction visitors
-    void operator()(const ast::asmb::Ret& ret) const {}
+    void operator()(const asmb::Ret& ret) const {}
     
-    void operator()(ast::asmb::Mov& mov) {
-        if (!std::holds_alternative<ast::asmb::Stack>(mov.mSrc) ||
-            !std::holds_alternative<ast::asmb::Stack>(mov.mDst))
+    void operator()(asmb::Mov& mov) {
+        if (!std::holds_alternative<asmb::Stack>(mov.mSrc) ||
+            !std::holds_alternative<asmb::Stack>(mov.mDst))
             return;
         // Otherwise this is a mem->mem mov operation which is not allowed.
         auto stackDst = mov.mDst;
-        mov.mDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
-        ast::asmb::Mov nextMovInstruction(mov.mDst, stackDst);
+        mov.mDst = asmb::Reg(asmb::RegisterName::R10);
+        asmb::Mov nextMovInstruction(mov.mDst, stackDst);
         mInstructions->emplace(mInstructions->begin() + mInstructionCounter + 1, std::move(nextMovInstruction));
     }
 
-    void operator()(const ast::asmb::Unary& unary) const {
+    void operator()(const asmb::Unary& unary) const {
     }
 
-    void operator()(ast::asmb::Binary& binary) {
+    void operator()(asmb::Binary& binary) {
         // Multiply operation can't have destination operand in memory
-        if (binary.mOp == ast::asmb::BinaryOperator::Multiply
-            && std::holds_alternative<ast::asmb::Stack>(binary.mOperand2)
+        if (binary.mOp == asmb::BinaryOperator::Multiply
+            && std::holds_alternative<asmb::Stack>(binary.mOperand2)
         ) {
             auto stackDestination = binary.mOperand2;
-            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R11);
-            ast::asmb::Mov mov1(stackDestination, registerDst);
-            ast::asmb::Mov mov2(registerDst, stackDestination);
+            auto registerDst = asmb::Reg(asmb::RegisterName::R11);
+            asmb::Mov mov1(stackDestination, registerDst);
+            asmb::Mov mov2(registerDst, stackDestination);
 
             binary.mOperand2 = registerDst;
             mInstructions->emplace(mInstructions->begin() + mInstructionCounter + 1, std::move(mov2));
@@ -149,27 +148,27 @@ struct FixUpAsmbInstructions {
         }
 
         // Shift operation needs second operand in CX register.
-        else if ((binary.mOp == ast::asmb::BinaryOperator::Left_Shift
-                || binary.mOp == ast::asmb::BinaryOperator::Right_Shift)
-                && (!std::holds_alternative<ast::asmb::Reg>(binary.mOperand1)
-                || std::get<ast::asmb::Reg>(binary.mOperand1).mReg != ast::asmb::RegisterName::CX)
+        else if ((binary.mOp == asmb::BinaryOperator::Left_Shift
+                || binary.mOp == asmb::BinaryOperator::Right_Shift)
+                && (!std::holds_alternative<asmb::Reg>(binary.mOperand1)
+                || std::get<asmb::Reg>(binary.mOperand1).mReg != asmb::RegisterName::CX)
         ) {
             // Move count to CX register for calculation
             auto count = binary.mOperand1;
-            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::CX);
-            ast::asmb::Mov moveCount(count, registerDst);
+            auto registerDst = asmb::Reg(asmb::RegisterName::CX);
+            asmb::Mov moveCount(count, registerDst);
 
             binary.mOperand1 = registerDst;
             mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(moveCount));
         }
 
         // Binary operation can't have both operands in memory.
-        else if (std::holds_alternative<ast::asmb::Stack>(binary.mOperand1)
-            && std::holds_alternative<ast::asmb::Stack>(binary.mOperand2)
+        else if (std::holds_alternative<asmb::Stack>(binary.mOperand1)
+            && std::holds_alternative<asmb::Stack>(binary.mOperand2)
         ) {
             // Move operand1 to r10 register
-            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
-            ast::asmb::Mov movInstruction(binary.mOperand1, registerDst);
+            auto registerDst = asmb::Reg(asmb::RegisterName::R10);
+            asmb::Mov movInstruction(binary.mOperand1, registerDst);
 
             // Replace operand1 in binop as r10 register
             binary.mOperand1 = registerDst;
@@ -179,36 +178,37 @@ struct FixUpAsmbInstructions {
         }
     }
 
-    void operator()(ast::asmb::Idiv& idiv) {
-        if (!std::holds_alternative<ast::asmb::Imm>(idiv.mOperand)) return;
+    void operator()(asmb::Idiv& idiv) {
+        if (!std::holds_alternative<asmb::Imm>(idiv.mOperand)) return;
         // Otherwise idiv is using an immediate value as operand which is not allowed.
-        ast::asmb::Mov preMovInstruction(idiv.mOperand, ast::asmb::Reg(ast::asmb::RegisterName::R10));
-        idiv.mOperand = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+        asmb::Mov preMovInstruction(idiv.mOperand, asmb::Reg(asmb::RegisterName::R10));
+        idiv.mOperand = asmb::Reg(asmb::RegisterName::R10);
         mInstructions->emplace(mInstructions->begin() + mInstructionCounter, preMovInstruction);
     }
 
-    void operator()(const ast::asmb::Cdq& cdq) const {}
+    void operator()(const asmb::Cdq& cdq) const {}
 
-    void operator()(const ast::asmb::AllocateStack& allocateStack) const {
-    }
+    void operator()(const asmb::AllocateStack& allocateStack) const {}
 
-    void operator()(ast::asmb::Cmp& cmp) const {
+    void operator()(const asmb::DeallocateStack& deallocateStack) const {}
+
+    void operator()(asmb::Cmp& cmp) const {
 
         // Compare operation can't have Operand2 be an immediate value (analaguous to dst in sub).
-        if (std::holds_alternative<ast::asmb::Imm>(cmp.mOperand2)) {
-            ast::asmb::Mov preMovInstruction(cmp.mOperand2, ast::asmb::Reg(ast::asmb::RegisterName::R10));
-            cmp.mOperand2 = ast::asmb::Reg(ast::asmb::RegisterName::R10);
+        if (std::holds_alternative<asmb::Imm>(cmp.mOperand2)) {
+            asmb::Mov preMovInstruction(cmp.mOperand2, asmb::Reg(asmb::RegisterName::R10));
+            cmp.mOperand2 = asmb::Reg(asmb::RegisterName::R10);
             mInstructions->emplace(mInstructions->begin() + mInstructionCounter, preMovInstruction);
         }
 
         // Compare operation can't have both operands in memory.
         // Second operand necessarily won't be in memory if last if statement was true as it was moved to R10 register.
-        else if (std::holds_alternative<ast::asmb::Stack>(cmp.mOperand1)
-            && std::holds_alternative<ast::asmb::Stack>(cmp.mOperand2)
+        else if (std::holds_alternative<asmb::Stack>(cmp.mOperand1)
+            && std::holds_alternative<asmb::Stack>(cmp.mOperand2)
         ) {
             // Move operand1 to r10 register
-            auto registerDst = ast::asmb::Reg(ast::asmb::RegisterName::R10);
-            ast::asmb::Mov movInstruction(cmp.mOperand1, registerDst);
+            auto registerDst = asmb::Reg(asmb::RegisterName::R10);
+            asmb::Mov movInstruction(cmp.mOperand1, registerDst);
 
             // Replace operand1 in binop as r10 register
             cmp.mOperand1 = registerDst;
@@ -217,18 +217,21 @@ struct FixUpAsmbInstructions {
             mInstructions->emplace(mInstructions->begin() + mInstructionCounter, std::move(movInstruction));
         }
     }
-    void operator()(const ast::asmb::Jmp& jmp) const {}
-    void operator()(const ast::asmb::JmpCC& jmpCC) const {}
-    void operator()(const ast::asmb::SetCC& setCC) const {}
-    void operator()(const ast::asmb::Label& label) const {}
+    void operator()(const asmb::Jmp& jmp) const {}
+    void operator()(const asmb::JmpCC& jmpCC) const {}
+    void operator()(const asmb::SetCC& setCC) const {}
+    void operator()(const asmb::Label& label) const {}
+    void operator()(const asmb::Push& push) const {}
+    void operator()(const asmb::Call& call) const {}
 
     // Function visitor
-    void operator()(ast::asmb::Function& func) {
-        // Set mInstructions reference
+    void operator()(asmb::Function& func, uint32_t stackSize) {
+        // Set mInstructions reference and reset instruction counter
         mInstructions = &func.mInstructions;
+        mInstructionCounter = 0;
 
         // Add AllocateStack instruction
-        ast::asmb::AllocateStack allocateStackInstruction(mStackSize);
+        asmb::AllocateStack allocateStackInstruction(stackSize);
         mInstructions->emplace(mInstructions->begin(), allocateStackInstruction);
 
         // Fix any memory to memory mov instructions
@@ -239,8 +242,9 @@ struct FixUpAsmbInstructions {
     }
 
     // Program visitor
-    void operator()(ast::asmb::Program& program) {
-        (*this)(program.mFunction);
+    void operator()(asmb::Program& program, SymbolMapType& symbolMap) {
+        for (auto& function : program.mFunctions)
+            (*this)(function, symbolMap.at(function.mIdentifier).mStackSize);
     }
 };
 
@@ -250,91 +254,103 @@ struct FixUpAsmbInstructions {
 struct EmitAsmbVisitor {
 
     // Operand visitors
-    std::string operator() (const ast::asmb::Imm& imm) const {
+    std::string operator() (const asmb::Imm& imm) const {
         return std::format("${}", imm.mValue);
     }
 
-    std::string operator() (const ast::asmb::Reg& reg) const {
-        return std::string(ast::asmb::reg_name_to_string(reg.mReg));
+    std::string operator() (const asmb::Reg& reg) const {
+        return std::string(asmb::reg_name_to_string(reg.mReg));
     }
 
-    std::string operator() (const ast::asmb::Pseudo& pseudo) const {
+    std::string operator() (const asmb::Pseudo& pseudo) const {
         // should not have any pseudo registers.
         throw std::runtime_error("Pseudo operand in tree during EmitAsmbVisitor");
     }
 
-    std::string operator() (const ast::asmb::Stack& stack) const {
+    std::string operator() (const asmb::Stack& stack) const {
         return std::format("{}(%rbp)", stack.mLocation);
     }
 
     // Instruction visitors
-    std::string operator() (const ast::asmb::Mov& mov) const {
+    std::string operator() (const asmb::Mov& mov) const {
         return std::format("movl {}, {}", std::visit(*this, mov.mSrc), std::visit(*this, mov.mDst));
     }
 
-    std::string operator() (const ast::asmb::Ret ret) const {
+    std::string operator() (const asmb::Ret& ret) const {
         return "movq %rbp, %rsp\n\tpopq %rbp\n\tret";
     }
 
-    std::string operator() (const ast::asmb::Unary unary) const {
-        return std::format("{} {}", ast::asmb::unary_op_to_instruction(unary.mOp), std::visit(*this, unary.mOperand));
+    std::string operator() (const asmb::Unary& unary) const {
+        return std::format("{} {}", asmb::unary_op_to_instruction(unary.mOp), std::visit(*this, unary.mOperand));
     }
 
-    std::string operator() (const ast::asmb::Binary binary) const {
+    std::string operator() (const asmb::Binary& binary) const {
         return std::format("{} {}, {}",
-                            ast::asmb::binary_op_to_instruction(binary.mOp),
+                            asmb::binary_op_to_instruction(binary.mOp),
                             std::visit(*this, binary.mOperand1),
                             std::visit(*this, binary.mOperand2));
     }
 
-    std::string operator() (const ast::asmb::Idiv idiv) const {
+    std::string operator() (const asmb::Idiv& idiv) const {
         return std::format("idivl {}", std::visit(*this, idiv.mOperand));
     }
 
-    std::string operator() (const ast::asmb::Cdq cdq) const {
+    std::string operator() (const asmb::Cdq& cdq) const {
         return "Cdq";
     }
 
-    std::string operator() (const ast::asmb::AllocateStack allocateStack) const {
+    std::string operator() (const asmb::AllocateStack& allocateStack) const {
         return std::format("subq ${}, %rsp", allocateStack.mValue);
     }
 
-    std::string operator()(const ast::asmb::Cmp& cmp) const {
+    std::string operator()(const asmb::DeallocateStack& deallocateStack) {
+        return "";
+    }
+
+    std::string operator()(const asmb::Cmp& cmp) const {
         return std::format("cmpl {}, {}", std::visit(*this, cmp.mOperand1), std::visit(*this, cmp.mOperand2));
     }
 
-    std::string operator()(const ast::asmb::Jmp& jmp) const {
+    std::string operator()(const asmb::Jmp& jmp) const {
         return std::format("jmp .L{}", jmp.mIdentifier);
     }
 
-    std::string operator()(const ast::asmb::JmpCC& jmpCC) const {
-        return std::format("j{} .L{}", ast::asmb::condition_code_to_string(jmpCC.mCondCode), jmpCC.mIdentifier);
+    std::string operator()(const asmb::JmpCC& jmpCC) const {
+        return std::format("j{} .L{}", asmb::condition_code_to_string(jmpCC.mCondCode), jmpCC.mIdentifier);
     }
 
-    std::string operator()(const ast::asmb::SetCC& setCC) const {
+    std::string operator()(const asmb::SetCC& setCC) const {
         std::string_view dstString;
         // Can't use visitor on register as we need 1 byte name.
-        if (std::holds_alternative<ast::asmb::Reg>(setCC.mDst))
-            dstString = ast::asmb::reg_name_to_string(std::get<ast::asmb::Reg>(setCC.mDst).mReg, 
-                                                      ast::asmb::RegisterSize::BYTE);
+        if (std::holds_alternative<asmb::Reg>(setCC.mDst))
+            dstString = asmb::reg_name_to_string(std::get<asmb::Reg>(setCC.mDst).mReg, 
+                                                      asmb::RegisterSize::BYTE);
         else
             dstString = std::visit(*this, setCC.mDst);
 
         return std::format(
             "set{} {}",
-            ast::asmb::condition_code_to_string(setCC.mCondCode),
+            asmb::condition_code_to_string(setCC.mCondCode),
             dstString);
     }
 
-    std::string operator()(const ast::asmb::Label& label) const {
+    std::string operator()(const asmb::Label& label) const {
         return std::format(".L{}:", label.mIdentifier);
     }
 
+    std::string operator()(const asmb::Push& push) const {
+        return "";
+    }
+
+    std::string operator()(const asmb::Call& call) const {
+        return "";
+    }
+
     // Function visitor
-    std::string operator()(const ast::asmb::Function& function) {
+    std::string operator()(const asmb::Function& function) {
         std::stringstream ss;
-        ss << ".globl " << function.mIdentifier.value() << std::endl;
-        ss << function.mIdentifier.value() << ":\n";
+        ss << ".globl " << function.mIdentifier << std::endl;
+        ss << function.mIdentifier << ":\n";
         ss << "\tpushq %rbp\n" << "\tmovq %rsp, %rbp\n";
         
         for (auto& instruction : function.mInstructions) {
@@ -345,8 +361,9 @@ struct EmitAsmbVisitor {
     }
 
     // Program
-    std::string operator()(const ast::asmb::Program& program) {
-        return std::format("{}\n.section .note.GNU-stack,\"\",@progbits\n", (*this)(program.mFunction));
+    std::string operator()(const asmb::Program& program) {
+        return "";
+        //return std::format("{}\n.section .note.GNU-stack,\"\",@progbits\n", (*this)(program.mFunction));
     }
 };
 

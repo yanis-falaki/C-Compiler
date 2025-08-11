@@ -349,17 +349,4 @@ struct Program {
     }
 };
 
-
-// ------------------------------> Type <------------------------------
-
-struct Int {};
-
-struct FuncType {
-    uint32_t mParamCount;
-    FuncType(int paramCount) : mParamCount(paramCount) {}
-    bool operator==(const FuncType& other) const = default;
-};
-
-using Type = std::variant<Int, FuncType>;
-
 }

@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include <format>
 #include "../../ast/ast_c.hpp"
+#include "../../ast/general.hpp"
 
 namespace compiler::ast::c {
 
@@ -276,20 +277,13 @@ public:
 
 // ------------------------------> Type Checking <------------------------------
 
-struct SymbolInfo {
-    Type mType;
-    bool mDefined; // used for functions
-    bool mHasExternalLinkage;
-    SymbolInfo() = default;
-    SymbolInfo(Type type, bool defined, bool hasExternalLinkage)
-        : mType(std::move(type)), mDefined(defined), mHasExternalLinkage(hasExternalLinkage) {}
-};
-
 struct TypeChecking {
 private:
-    std::unordered_map<std::string, SymbolInfo> mSymbolMap; 
+    SymbolMapType& mSymbolMap; 
 
 public:
+    TypeChecking(SymbolMapType& symbolMap) : mSymbolMap(symbolMap) {}
+
     // Expression visitors
     void operator()(const Constant& constant) {}
 
@@ -344,7 +338,7 @@ public:
     }
 
     void operator()(const VarDecl& varDecl) {
-        mSymbolMap.insert_or_assign(varDecl.mIdentifier, SymbolInfo(ast::c::Int(), true, false));
+        mSymbolMap.insert_or_assign(varDecl.mIdentifier, SymbolInfo(Int(), true, false));
         (*this)(varDecl.mExpr);
     }
 

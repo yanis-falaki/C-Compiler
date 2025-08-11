@@ -136,9 +136,11 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
         return fs::path();
     }
 
+    compiler::ast::SymbolMapType symbolMap;
+
     // Validate C AST
     compiler::ast::c::IdentifierResolution()(program);
-    compiler::ast::c::TypeChecking()(program);
+    (compiler::ast::c::TypeChecking(symbolMap))(program);
     compiler::ast::c::ControlFlowLabelling()(program);
     compiler::ast::c::LabelResolution()(program);
     if (args.count("validate")) {
@@ -156,9 +158,9 @@ fs::path compile(fs::path source_path, fs::path output_path, const cxxopts::Pars
     // 0th pass, asmb tree creation
     compiler::ast::asmb::Program asmb = compiler::codegen::TackyToAsmb()(tackyProgram);
     // 1st pass, removing pseudo-registers
-    uint32_t stackSize = compiler::codegen::ReplacePseudoRegisters()(asmb);
+    compiler::codegen::ReplacePseudoRegisters()(asmb, symbolMap);
     // 2nd pass, allocating stack memory and fixing memory-to-memory mov instructions
-    (compiler::codegen::FixUpAsmbInstructions(stackSize))(asmb);
+    compiler::codegen::FixUpAsmbInstructions()(asmb, symbolMap);
 
     if (args.count("codegen")) {
         compiler::ast::asmb::PrintVisitor()(asmb);;

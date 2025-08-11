@@ -136,7 +136,7 @@ binary_operator = Add | Subtract | Multiply | Divide | Remainder
 
 # Assembly AST ASDL:
 ```
-program = Program(function_definition)
+program = Program(function_definition*)
 
 function_definition = Function(identifier name, instruction* instructions)
 
@@ -152,6 +152,9 @@ instruction = Mov(operand src, operand dst)
             | SetCC(cond_code, operand)
             | Label(identifier)
             | AllocateStack(int)
+            | DeallocateStack(int)
+            | Push(operand)
+            | Call(identifier)
 
 unary_operator = Neg | Not
 
@@ -161,5 +164,5 @@ operand = Imm(int) | Reg(reg) | Pseudo(identifier) | Stack(int)
 
 cond_code = E | NE | G | GE | L | LE
 
-reg = AX | DX | R10 | R11
+reg = AX | CX | DX | DI | SI | R8 | R9 | R10 | R11
 ```
