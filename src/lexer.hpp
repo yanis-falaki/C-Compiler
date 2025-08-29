@@ -30,6 +30,8 @@ enum class LexType {
     Switch,
     Case,
     Default,
+    Extern,
+    Static,
     Open_Parenthesis,
     Close_Parenthesis,
     Open_Brace,
@@ -91,6 +93,8 @@ inline constexpr std::string_view lex_type_to_str(LexType type) {
         case LexType::Switch:                   return "switch";
         case LexType::Case:                     return "case";
         case LexType::Default:                  return "default";
+        case LexType::Extern:                   return "extern";
+        case LexType::Static:                   return "static";
         case LexType::BitwiseComplement:        return "~";
         case LexType::Negation:                 return "-";
         case LexType::Decrement:                return "--";
@@ -152,7 +156,9 @@ constexpr std::pair<std::string_view, LexType> KEYWORD_MAP[] = {
     std::make_pair("continue", LexType::Continue),
     std::make_pair("switch", LexType::Switch),
     std::make_pair("case", LexType::Case),
-    std::make_pair("default", LexType::Default)
+    std::make_pair("default", LexType::Default),
+    std::make_pair("extern", LexType::Extern),
+    std::make_pair("static", LexType::Static),
 };
 
 // ------------------------------> is_unary_op <------------------------------
@@ -271,7 +277,7 @@ inline constexpr uint32_t binary_op_precedence(LexType type) {
 // ------------------------------> Symbols to Check <------------------------------
 
 // arraySize is length of enums - types we shouldn't check for.
-constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-16;
+constexpr size_t SYMBOL_MAPPING_SIZE = static_cast<int>(LexType::Undefined)-18;
 
 constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> generateSortedSymbolMapping() {
     std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> sortedSymbols{};
@@ -295,7 +301,9 @@ constexpr std::array<std::pair<std::string_view, LexType>, SYMBOL_MAPPING_SIZE> 
             lexType == LexType::Continue ||
             lexType == LexType::Switch ||
             lexType == LexType::Case ||
-            lexType == LexType::Default) {
+            lexType == LexType::Default ||
+            lexType == LexType::Extern ||
+            lexType == LexType::Static) {
             continue;
         }
 
